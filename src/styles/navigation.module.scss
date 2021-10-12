@@ -1,0 +1,11 @@
+nav.navigation {
+  ul {
+    display: inline-block;
+    list-style: none;
+    padding-inline-start: 0;
+    li {
+      display: inherit;
+      padding: 0 5px;
+    }
+  }
+}
