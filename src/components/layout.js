@@ -1,23 +1,20 @@
 import React from 'react'
 
-import './variables.css'
-import './global.css'
-import Seo from './seo'
-import Navigation from './navigation'
-import Footer from './footer'
-class Template extends React.Component {
-  render() {
-    const { children } = this.props
+import Seo from './Seo'
+import Navigation from './Navigation'
+import Footer from './Footer'
 
-    return (
-      <>
-        <Seo />
-        <Navigation />
-        <main>{children}</main>
-        <Footer />
-      </>
-    )
-  }
+import '../styles/global.scss'
+
+const Layout = ({ children }) => {
+  return (
+    <>
+      <Seo />
+      <Navigation />
+      <main>{children}</main>
+      <Footer />
+    </>
+  )
 }
 
-export default Template
+export default Layout
