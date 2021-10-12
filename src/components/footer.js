@@ -1,16 +1,14 @@
-import React from 'react'
+/** @jsx jsx */
+import { jsx } from 'theme-ui'
 
-import Container from './container'
-import * as styles from './footer.module.css'
+import * as styles from '../styles/footer.module.scss'
 
 const Footer = () => (
-  <Container as="footer">
-    <div className={styles.container}>
-      Built with <a href="https://contentful.com/">Contentful</a> and{' '}
-      <a href="https://gatsbyjs.com">Gatsby</a> &middot;{' '}
-      <a href="https://github.com/contentful/starter-gatsby-blog">Source</a>
-    </div>
-  </Container>
+  <footer>
+    <p className={styles.copyright}>
+      © Joshua Hayes Davidson {new Date().getFullYear()}
+    </p>
+  </footer>
 )
 
 export default Footer
