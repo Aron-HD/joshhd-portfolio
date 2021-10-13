@@ -3,21 +3,18 @@ const path = require('path')
 exports.createPages = async ({ graphql, actions, reporter }) => {
   const { createPage } = actions
 
-  // Define a template for blog post
-  const project = path.resolve('./src/templates/project.js')
-
-  const result = await graphql(
-    `
-      {
-        allContentfulProject {
-          nodes {
+  const result = await graphql(`
+    query {
+      allContentfulProject {
+        edges {
+          node {
             title
             slug
           }
         }
       }
-    `
-  )
+    }
+  `)
 
   if (result.errors) {
     reporter.panicOnBuild(
@@ -27,7 +24,7 @@ exports.createPages = async ({ graphql, actions, reporter }) => {
     return
   }
 
-  const projects = result.data.allContentfulProject.nodes
+  const projects = result.data.allContentfulProject.edges
 
   // Create blog posts pages
   // But only if there's at least one blog post found in Contentful
@@ -40,10 +37,10 @@ exports.createPages = async ({ graphql, actions, reporter }) => {
         index === projects.length - 1 ? null : projects[index + 1].slug
 
       createPage({
-        path: `/${project.slug}/`,
-        component: project,
+        path: `/projects/${project.node.slug}/`,
+        component: path.resolve('./src/templates/project.js'),
         context: {
-          slug: project.slug,
+          slug: project.node.slug,
           previousProjectSlug,
           nextProjectSlug,
         },
