@@ -1,6 +1,7 @@
 /** @jsx jsx */
-import { jsx } from 'theme-ui'
+import { jsx, Card, Text, Heading } from 'theme-ui'
 import { Link, graphql, useStaticQuery } from 'gatsby'
+import { GatsbyImage, getImage } from 'gatsby-plugin-image'
 
 import * as styles from '../styles/projects.module.scss'
 
@@ -12,8 +13,16 @@ const Projects = () => {
           edges {
             node {
               title
-              id
               slug
+              cardThumbnail {
+                gatsbyImageData(
+                  formats: AUTO
+                  layout: CONSTRAINED
+                  placeholder: BLURRED
+                  quality: 80
+                  width: 300
+                )
+              }
             }
           }
         }
@@ -21,26 +30,30 @@ const Projects = () => {
     `
   )
   return (
-    <section className={styles.projectCards}>
-      {data.allContentfulProject.edges.map((edge) => {
-        return (
-          <div
-            className={styles.projectCard}
-            key={edge.node.title.toLowerCase()}
-          >
-            <Link to={`/projects/${edge.node.slug}/`}>
-              {edge.node.title}
-              {/* {edge.node.heroImage && (
+    <section className={styles.projects}>
+      <Heading as="h3" variant="caps">
+        selected projects
+      </Heading>
+      <div className={styles.projectCards}>
+        {data.allContentfulProject.edges.map((edge) => {
+          return (
+            <Card variant="compact" className={styles.projectCard}>
+              <Link to={`/projects/${edge.node.slug}/`}>
+                <Heading as="h4" variant="styles.H4">
+                  {edge.node.title}
+                </Heading>
+                {edge.node.cardThumbnail && (
                   <GatsbyImage
-                    className={styles}
-                    image={getImage(edge.node.heroImage)}
+                    className={styles.thumbnail}
+                    image={getImage(edge.node.cardThumbnail)}
                     alt={edge.node.title}
                   />
-                )} */}
-            </Link>
-          </div>
-        )
-      })}
+                )}
+              </Link>
+            </Card>
+          )
+        })}
+      </div>
     </section>
   )
 }
