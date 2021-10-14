@@ -2,7 +2,7 @@ const theme = {
   colors: {
     text: '#000',
     background: '#fff',
-    primary: '#07c',
+    primary: '#00ffaa',
     modes: {
       dark: {
         text: '#fff',
@@ -15,13 +15,13 @@ const theme = {
   space: [0, 4, 8, 16, 32, 64, 128, 256, 512],
   fonts: {
     body: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif',
-    heading: 'inherit',
+    heading: '"Helvetica Neue", Roboto, sans-serif',
     monospace: 'Menlo, monospace',
   },
   fontSizes: [12, 14, 16, 20, 24, 32, 48, 64, 96],
   fontWeights: {
     body: 400,
-    heading: 700,
+    heading: 800,
     bold: 700,
   },
   lineHeights: {
@@ -29,6 +29,16 @@ const theme = {
     heading: 1.125,
   },
   text: {
+    default: {
+      color: 'text',
+      fontSize: 2,
+      mt: '1rem',
+      mb: '1rem',
+    },
+    caps: {
+      textTransform: 'uppercase',
+      letterSpacing: '0.1em',
+    },
     heading: {
       fontFamily: 'heading',
       lineHeight: 'heading',
@@ -41,29 +51,70 @@ const theme = {
       lineHeight: 'body',
       fontWeight: 'body',
     },
+    H1: {
+      textTransform: 'uppercase',
+      variant: 'text.heading',
+      fontSize: 7,
+    },
     h1: {
       variant: 'text.heading',
-      fontSize: 5,
+      fontSize: 7,
     },
     h2: {
       variant: 'text.heading',
-      fontSize: 4,
+      fontSize: 6,
     },
     h3: {
       variant: 'text.heading',
-      fontSize: 3,
+      fontSize: 5,
     },
     h4: {
       variant: 'text.heading',
-      fontSize: 2,
+      fontSize: 4,
+    },
+    H4: {
+      textTransform: 'uppercase',
+      variant: 'text.heading',
+      fontSize: 4,
+      color: 'primary',
     },
     h5: {
       variant: 'text.heading',
-      fontSize: 1,
+      fontSize: 3,
     },
     h6: {
       variant: 'text.heading',
-      fontSize: 0,
+      fontSize: 2,
+    },
+  },
+  cards: {
+    primary: {
+      padding: 2,
+      borderRadius: 4,
+      boxShadow: '0 0 8px rgba(0, 0, 0, 0.125)',
+    },
+    compact: {
+      padding: 0,
+      borderRadius: 2,
+      boxShadow: '0 0 8px rgba(0, 0, 0, 0.125)',
+    },
+  },
+  buttons: {
+    primary: {
+      cursor: 'pointer',
+      color: 'background',
+      bg: 'primary',
+      '&:hover': {
+        bg: 'text',
+      },
+    },
+    secondary: {
+      cursor: 'pointer',
+      color: 'background',
+      bg: 'text',
+      '&:hover': {
+        bg: 'primary',
+      },
     },
   },
 }
