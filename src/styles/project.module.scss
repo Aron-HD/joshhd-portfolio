@@ -1,3 +1,40 @@
-.content {
+main {
+  width: 100%;
+}
+article.content {
   display: flex;
+  flex-direction: column;
+  // justify-content: space-between;
+  width: 100%;
+  padding: 3rem;
+  text-align: left;
+
+  nav.header {
+    padding: 1rem 0 1rem;
+    position: -webkit-sticky; /* Safari */
+    position: sticky;
+    top: 0;
+    width: 100%;
+    display: flex;
+    .containerLeft,
+    .containerRight {
+      flex: 1;
+    }
+    .containerRight {
+      display: flex;
+      text-align: right;
+      align-items: center;
+      justify-content: right;
+    }
+  }
+
+  section.title {
+    // background-color: lightcyan;
+  }
+
+  section.body {
+    height: 100vh;
+    padding: 5px 20vw;
+    // background-color: lightyellow;
+  }
 }
