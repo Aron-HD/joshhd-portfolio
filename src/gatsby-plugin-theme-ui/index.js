@@ -10,7 +10,7 @@ const theme = {
       dark: {
         text: '#fff',
         background: '#000',
-        primary: '#0cf',
+        // primary: '#0cf',
       },
     },
   },
@@ -57,7 +57,7 @@ const theme = {
     H1: {
       textTransform: 'uppercase',
       variant: 'text.heading',
-      fontSize: 7,
+      fontSize: 6,
     },
     h1: {
       variant: 'text.heading',
@@ -113,8 +113,8 @@ const theme = {
     },
     secondary: {
       cursor: 'pointer',
-      color: 'background',
-      bg: 'text',
+      color: 'text',
+      bg: 'background',
       '&:hover': {
         bg: 'primary',
       },
