@@ -1,14 +1,17 @@
-/** @jsx jsx */
-import { jsx } from 'theme-ui'
+import React from 'react'
+import { Text } from 'theme-ui'
+import styled from '@emotion/styled'
 
-import * as styles from '../styles/footer.module.scss'
+const StyledFooter = styled.footer`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`
 
 const Footer = () => (
-  <footer>
-    <p className={styles.copyright}>
-      © Joshua Hayes Davidson {new Date().getFullYear()}
-    </p>
-  </footer>
+  <StyledFooter>
+    <Text as="p">©{new Date().getFullYear()} | Joshua Hayes Davidson</Text>
+  </StyledFooter>
 )
 
 export default Footer
