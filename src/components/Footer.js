@@ -10,7 +10,9 @@ const StyledFooter = styled.footer`
 
 const Footer = () => (
   <StyledFooter>
-    <Text as="p">©{new Date().getFullYear()} | Joshua Hayes Davidson</Text>
+    <Text as="p" variant="small">
+      ©{new Date().getFullYear()} | Joshua Hayes Davidson
+    </Text>
   </StyledFooter>
 )
 
