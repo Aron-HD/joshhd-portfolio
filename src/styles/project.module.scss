@@ -38,3 +38,18 @@ article.content {
     // background-color: lightyellow;
   }
 }
+
+@media (max-width: 600px) {
+  main {
+    margin-top: 0;
+    article.content {
+      padding: 10px;
+      nav.header {
+        padding: 0;
+      }
+      section.body {
+        padding: 5px;
+      }
+    }
+  }
+}
