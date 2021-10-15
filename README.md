@@ -1,6 +1,6 @@
 <p align="center">
     <a href="https://joshhd.netlify.app">
-        <img height="60" width="60" src="static/favicon.ico" alt="aronhd.com" />
+        <img height="60" width="60" src="static/favicon.ico" alt="joshhd.co.uk" />
     </a>
 </p>
 
