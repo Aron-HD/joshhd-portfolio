@@ -37,7 +37,11 @@ const Projects = () => {
       <div className={styles.projectCards}>
         {data.allContentfulProject.edges.map((edge) => {
           return (
-            <Card variant="compact" className={styles.projectCard}>
+            <Card
+              variant="compact"
+              className={styles.projectCard}
+              key={edge.node.slug}
+            >
               <Link to={`/projects/${edge.node.slug}/`}>
                 <Heading as="h4" variant="styles.H4">
                   {edge.node.title}
