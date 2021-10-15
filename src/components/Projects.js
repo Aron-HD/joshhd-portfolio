@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx, Card, Text, Heading } from 'theme-ui'
+import { jsx, Card, Heading } from 'theme-ui'
 import { Link, graphql, useStaticQuery } from 'gatsby'
 import { GatsbyImage, getImage } from 'gatsby-plugin-image'
 
