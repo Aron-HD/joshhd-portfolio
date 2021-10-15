@@ -17,11 +17,11 @@ const theme = {
   breakpoints: ['40em', '52em', '64em'],
   space: [0, 4, 8, 16, 32, 64, 128, 256, 512],
   fonts: {
-    body: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif',
+    body: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif',
     heading: '"Helvetica Neue", Roboto, sans-serif',
     monospace: 'Menlo, monospace',
   },
-  fontSizes: [12, 14, 16, 20, 24, 32, 48, 64, 96],
+  fontSizes: [11, 15, 18, 20, 24, 32, 48, 64, 96],
   fontWeights: {
     body: 400,
     heading: 800,
@@ -34,9 +34,19 @@ const theme = {
   text: {
     default: {
       color: 'text',
+      fontSize: 1,
+      mt: '1rem',
+      mb: '1rem',
+    },
+    large: {
       fontSize: 2,
       mt: '1rem',
       mb: '1rem',
+    },
+    small: {
+      fontSize: 0,
+      mt: '5px',
+      mb: '5px',
     },
     caps: {
       textTransform: 'uppercase',
