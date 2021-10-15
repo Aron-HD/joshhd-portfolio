@@ -1,10 +1,7 @@
-main {
-  width: 100%;
-}
 article.content {
   display: flex;
   flex-direction: column;
-  // justify-content: space-between;
+  justify-content: center;
   width: 100%;
   padding: 3rem;
   text-align: left;
@@ -34,7 +31,7 @@ article.content {
 
   section.body {
     height: 100vh;
-    padding: 5px 20vw;
+    padding: 5px 25vw;
     // background-color: lightyellow;
   }
 }
