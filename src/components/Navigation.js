@@ -23,8 +23,8 @@ const Navigation = () => (
         </Link>
       </li>
       <li>
-        <Link to="/projects/" activeClassName="active">
-          Projects
+        <Link to="/about/" activeClassName="active">
+          About
         </Link>
       </li>
     </ul>
