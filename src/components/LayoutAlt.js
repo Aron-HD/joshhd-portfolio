@@ -18,14 +18,17 @@ const StyledHeader = styled.header`
   display: flex;
   .containerLeft {
     flex: 1;
+    display: flex;
     text-align: left;
+    align-items: center;
+    justify-content: flex-start;
   }
   .containerRight {
     flex: 1;
     display: flex;
     text-align: right;
     align-items: center;
-    justify-content: right;
+    justify-content: flex-end;
   }
 `
 

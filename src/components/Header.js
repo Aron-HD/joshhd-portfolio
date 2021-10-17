@@ -13,16 +13,16 @@ const StyledHeader = styled.header`
   top: 0;
   width: 100vw;
   .left {
-    display: inherit;
+    display: flex;
     align-items: center;
-    justify-content: left;
+    justify-content: flex-start;
     flex: 1;
   }
   .right {
-    display: inherit;
+    display: flex;
     text-align: right;
-
-    justify-content: right;
+    align-items: center;
+    justify-content: flex-end;
     flex: 1;
   }
 `
