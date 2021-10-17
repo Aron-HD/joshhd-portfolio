@@ -1,10 +1,21 @@
 import React from 'react'
 import { Link } from 'gatsby'
+import styled from '@emotion/styled'
 
-import * as styles from '../styles/navigation.module.scss'
+const StyledNav = styled.nav`
+  ul {
+    display: inline-block;
+    list-style: none;
+    padding-inline-start: 0;
+    li {
+      display: inherit;
+      padding: 0 5px;
+    }
+  }
+`
 
 const Navigation = () => (
-  <nav role="navigation" className={styles.navigation} aria-label="Main">
+  <StyledNav role="navigation" aria-label="Main">
     <ul>
       <li>
         <Link to="/" activeClassName="active">
@@ -17,7 +28,7 @@ const Navigation = () => (
         </Link>
       </li>
     </ul>
-  </nav>
+  </StyledNav>
 )
 
 export default Navigation
