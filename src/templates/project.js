@@ -1,12 +1,11 @@
 /** @jsx jsx */
-import { jsx, Heading, Text, Button } from 'theme-ui'
-import { graphql, Link } from 'gatsby'
+import { jsx, Heading, Text } from 'theme-ui'
+import { graphql } from 'gatsby'
 import { BLOCKS, MARKS } from '@contentful/rich-text-types'
 import { renderRichText } from 'gatsby-source-contentful/rich-text'
 
-import Layout from '../components/Layout'
+import LayoutAlt from '../components/LayoutAlt'
 import Seo from '../components/Seo'
-import ContactInfo from '../components/ContactInfo'
 
 import * as styles from '../styles/project.module.scss'
 
@@ -38,20 +37,12 @@ const Project = (props) => {
   }
 
   return (
-    <Layout>
+    <LayoutAlt>
       <Seo title={props.data.contentfulProject.title} />
       <article className={styles.content}>
-        <nav className={styles.header}>
-          <div className={styles.containerLeft}>
-            <ContactInfo />
-          </div>
-          <div className={styles.containerRight}>
-            <Link to="/">
-              <Button variant="secondary">Return</Button>
-            </Link>
-          </div>
-        </nav>
-        <section className={styles.title}>
+        <section
+        /* className={styles.title} */
+        >
           <Heading as="h1" variant="styles.H1">
             {props.data.contentfulProject.title}
           </Heading>
@@ -60,7 +51,7 @@ const Project = (props) => {
           {bodyRichText && renderRichText(bodyRichText, options)}
         </section>
       </article>
-    </Layout>
+    </LayoutAlt>
   )
 }
 
