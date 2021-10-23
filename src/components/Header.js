@@ -1,9 +1,8 @@
-import React from 'react'
-// import { Text } from 'theme-ui'
+import React, { useState } from 'react'
 import styled from '@emotion/styled'
-
-import Navigation from './Navigation'
 import ThemeSwitch from './ThemeSwitcher'
+import NavBurger from './Nav/NavBurger'
+import NavBurgerMenu from './Nav/NavBurgerMenu'
 
 const StyledHeader = styled.header`
   display: -webkit-flex;
@@ -48,16 +47,19 @@ const StyledHeader = styled.header`
   }
 `
 
-const Header = () => (
-  <StyledHeader>
-    <div className="left">
-      <ThemeSwitch />
-    </div>
-    <div className="right">
-      {/* <NavBurger /> */}
-      <Navigation />
-    </div>
-  </StyledHeader>
-)
+const Header = () => {
+  const [open, setOpen] = useState(false)
+  return (
+    <StyledHeader>
+      <div className="left">
+        <ThemeSwitch />
+      </div>
+      <div className="right">
+        <NavBurger open={open} setOpen={setOpen} />
+        <NavBurgerMenu open={open} setOpen={setOpen} />
+      </div>
+    </StyledHeader>
+  )
+}
 
 export default Header
