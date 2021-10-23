@@ -56,6 +56,8 @@ const theme = {
       fontFamily: 'heading',
       lineHeight: 'heading',
       fontWeight: 'heading',
+      fontSize: 3,
+      textTransform: 'uppercase',
     },
   },
   styles: {
@@ -114,14 +116,18 @@ const theme = {
   },
   buttons: {
     primary: {
+      p: '4px 10px',
       cursor: 'pointer',
       color: 'background',
+      fontWeight: 'heading',
+      fontSize: 1,
       bg: 'primary',
       '&:hover': {
         bg: 'text',
       },
     },
     secondary: {
+      p: '4px 10px',
       cursor: 'pointer',
       color: 'text',
       bg: 'background',
