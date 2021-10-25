@@ -26,7 +26,7 @@ const RootIndex = () => {
         headshot {
           gatsbyImageData(
             formats: AUTO
-            layout: FIXED
+            layout: CONSTRAINED
             placeholder: BLURRED
             quality: 80
             width: 200
@@ -48,9 +48,7 @@ const RootIndex = () => {
             image={getImage(data.contentfulPerson.headshot)}
           />
         )}
-        <div
-        // className={styles.bio}
-        >
+        <div className={styles.bio}>
           <Heading as="h1">{data.contentfulPerson.fullName}</Heading>
           {bio && (
             <div

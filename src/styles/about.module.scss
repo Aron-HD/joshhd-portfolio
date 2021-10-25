@@ -9,10 +9,14 @@ section.about {
     border-radius: 50%;
     margin: 2rem;
     img {
+      z-index: -1;
       -moz-border-radius: 50%;
       -webkit-border-radius: 50%;
       border-radius: 50%;
     }
+  }
+  .bio {
+    margin-top: 2rem;
   }
 }
 
@@ -29,6 +33,9 @@ section.about {
     max-width: 80vw;
     .headshot {
       margin: 1rem;
+    }
+    .bio {
+      margin-top: 0.5rem;
     }
   }
 }
