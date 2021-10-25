@@ -1,14 +1,14 @@
 {
-  "name": "joshhd-portfolio-website",
-  "description": "Creative portfolio for joshhd.co.uk",
+  "name": "joshhd-portfolio",
+  "description": "Creative portfolio website for joshhd.co.uk",
   "private": true,
   "version": "0.0.1",
   "author": "Aron-HD",
   "bugs": {
-    "url": "https://joshhd.netlify.app"
+    "url": "https://github.com/Aron-HD/joshhd-portfolio"
   },
   "dependencies": {
-    "gatsby": "^3.10.1",
+    "gatsby": "^3.14.4",
     "gatsby-plugin-image": "^1.10.1",
     "gatsby-plugin-react-helmet": "^4.10.0",
     "gatsby-plugin-sass": "^4.14.0",
@@ -31,7 +31,7 @@
   "engines": {
     "node": ">=10.13.0"
   },
-  "homepage": "https://github.com/contentful/starter-gatsby-blog#readme",
+  "homepage": "https://joshhd.netlify.app",
   "keywords": [
     "gatsby",
     "contentful",
@@ -41,7 +41,7 @@
   "main": "n/a",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/contentful/starter-gatsby-blog.git"
+    "url": "https://github.com/Aron-HD/joshhd-portfolio"
   },
   "scripts": {
     "dev": "gatsby develop",

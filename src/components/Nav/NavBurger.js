@@ -6,7 +6,6 @@ import { bool, func } from 'prop-types'
 const StyledBurger = styled.button`
   display: flex;
   flex-direction: column;
-  display: flex;
   cursor: pointer;
   background: transparent;
   border: none;
