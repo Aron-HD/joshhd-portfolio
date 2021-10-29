@@ -8,6 +8,7 @@
     "url": "https://github.com/Aron-HD/joshhd-portfolio"
   },
   "dependencies": {
+    "@netlify/plugin-gatsby": "^1.0.3",
     "gatsby": "^3.14.4",
     "gatsby-plugin-image": "^1.10.1",
     "gatsby-plugin-react-helmet": "^4.10.0",
@@ -46,7 +47,7 @@
   "scripts": {
     "dev": "gatsby develop",
     "clean": "gatsby clean",
-    "build": "set NODE_ENV=production& gatsby build",
+    "build": "gatsby build",
     "heroku-postbuild": "gatsby build",
     "serve": "set NODE_ENV=production& gatsby serve",
     "postinstall": "node ./bin/hello.js",
