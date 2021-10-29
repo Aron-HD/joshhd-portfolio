@@ -45,9 +45,10 @@
   },
   "scripts": {
     "dev": "gatsby develop",
-    "build": "gatsby build",
+    "clean": "gatsby clean",
+    "build": "set NODE_ENV=production& gatsby build",
     "heroku-postbuild": "gatsby build",
-    "serve": "gatsby serve",
+    "serve": "set NODE_ENV=production& gatsby serve",
     "postinstall": "node ./bin/hello.js",
     "setup": "node ./bin/setup.js",
     "netlify:login": "netlify login",

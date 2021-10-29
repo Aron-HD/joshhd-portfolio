@@ -22,6 +22,28 @@
 
 Creative portfolio website for **[joshhd.co.uk][website]**.
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/d2952c51-8025-4a5b-8022-e3b86aedcff2/deploy-status)](https://app.netlify.com/sites/joshhd/deploys)
+
 Built with Gatsby, Contentful and GraphQL, deployed via Netlify, managed with kanban project in GitHub.
 
 [website]: https://joshhd.netlify.app
+
+---
+
+## Environment variables
+
+Put Contentful env variables in `.env.production` file:
+
+```shell
+CONTENTFUL_SPACE_ID=<space-id>
+CONTENTFUL_ACCESS_TOKEN=<access-token>
+```
+
+To set the node environment to pick these up during build and serve:
+
+```json
+"scripts": {
+    "build": "set NODE_ENV=production& gatsby build",
+    "serve": "set NODE_ENV=production& gatsby serve"
+}
+```
