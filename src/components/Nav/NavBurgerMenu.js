@@ -70,12 +70,12 @@ const NavMenu = ({ open }) => {
           </Link>
         </li>
         <li>
-          <Link className="menu" to="../../../static/portfolio.pdf">
+          <Link className="menu" to="portfolio.pdf" target="_blank">
             <Text variant="heading">Portfolio</Text>
           </Link>
         </li>
         <li>
-          <Link className="menu" to="../../../static/cv.pdf">
+          <Link className="menu" to="cv.pdf" target="_blank">
             <Text variant="heading">cv</Text>
           </Link>
         </li>
