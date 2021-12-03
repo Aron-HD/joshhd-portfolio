@@ -13,6 +13,7 @@ const StyledHeader = styled.header`
   padding: 1rem;
   position: -webkit-sticky; /* Safari */
   position: sticky;
+  z-index: 1;
   top: 0;
   /* width: 100vw; */
   display: flex;
