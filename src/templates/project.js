@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx, Heading, Text } from 'theme-ui'
+import { jsx, Heading, Text, useColorMode } from 'theme-ui'
 import { graphql } from 'gatsby'
 import { BLOCKS, MARKS } from '@contentful/rich-text-types'
 import { renderRichText } from 'gatsby-source-contentful/rich-text'
@@ -14,8 +14,16 @@ export const query = graphql`
   query MyQuery($slug: String!) {
     contentfulProject(slug: { eq: $slug }) {
       title
+      theme
       body {
         raw
+      }
+      backgroundImage {
+        gatsbyImageData(
+          formats: AUTO
+          layout: CONSTRAINED
+          placeholder: BLURRED
+        )
       }
       heroImage {
         gatsbyImageData(
@@ -25,6 +33,14 @@ export const query = graphql`
         )
       }
       heroVideo
+      mediaAssets {
+        description
+        gatsbyImageData(
+          formats: AUTO
+          layout: CONSTRAINED
+          placeholder: BLURRED
+        )
+      }
     }
   }
 `
@@ -33,7 +49,8 @@ const Project = (props) => {
   const bodyRichText = props.data.contentfulProject.body
   const heroImage = props.data.contentfulProject.heroImage
   const heroVideo = props.data.contentfulProject.heroVideo
-  const backgroundImage = props.data.contentfulProject.heroImage // change to backgroundImage
+  const backgroundImage = props.data.contentfulProject.backgroundImage
+  const linkedAssets = props.data.contentfulProject.mediaAssets
 
   const Bold = ({ children }) => <b>{children}</b>
 
@@ -43,27 +60,40 @@ const Project = (props) => {
       [BLOCKS.HEADING_1]: (node, children) => (
         <Heading as="h1">{children}</Heading>
       ),
+      [BLOCKS.EMBEDDED_ASSET]: (node) => {
+        if (node) {
+          console.log(node.data)
+        }
+        // return (
+        //   <GatsbyImage image={getImage(gatsbyImageData)} alt={description} />
+        // )
+      },
     },
     renderMark: {
       [MARKS.BOLD]: (text) => <Bold>{text}</Bold>,
     },
   }
 
+  const [colorMode, setColorMode] = useColorMode()
+  const theme = props.data.contentfulProject.theme
+  if (theme) {
+    setColorMode(theme.toLowerCase())
+  }
+
   return (
     <LayoutAlt>
       <Seo title={projTitle} />
+      {backgroundImage && (
+        <GatsbyImage
+          className={styles.backgroundImage}
+          image={getImage(backgroundImage)}
+        />
+      )}
       <section className={styles.title}>
         <Heading as="h1" variant="styles.H1">
           {projTitle}
         </Heading>
       </section>
-      {backgroundImage && (
-        // use gatsby-background-image plugin
-        <section
-          className={styles.backgroundImage}
-          style={{ backgroundImage: `url(${backgroundImage})` }}
-        />
-      )}
       <article className={styles.content}>
         {heroImage && (
           <section className={styles.heroImageSection}>
@@ -92,6 +122,19 @@ const Project = (props) => {
         <section className={styles.body}>
           {bodyRichText && renderRichText(bodyRichText, options)}
         </section>
+        {linkedAssets && (
+          <section className={styles.linkedAssets}>
+            {linkedAssets.map((asset) => {
+              return (
+                <GatsbyImage
+                  className={styles.asset}
+                  image={getImage(asset)}
+                  alt={asset.description}
+                />
+              )
+            })}
+          </section>
+        )}
       </article>
     </LayoutAlt>
   )
