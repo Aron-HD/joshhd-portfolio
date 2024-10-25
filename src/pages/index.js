@@ -1,5 +1,6 @@
 import React from 'react'
 import { Text } from 'theme-ui'
+import { useStaticQuery, graphql } from 'gatsby'
 
 import Layout from '../components/Layout'
 import Seo from '../components/Seo'
@@ -8,21 +9,36 @@ import Projects from '../components/Projects'
 import * as styles from '../styles/index.module.scss'
 
 const RootIndex = () => {
-  return (
-    <Layout>
-      <Seo title="Home" />
-      <section className={styles.foreword}>
-        <Text as="p" variant="large">
-          Joshua works in visual communication his digital media skills evolved
-          through an immersion in digital culture and Graphic Design.
-          <br />
-          <br />
-          He has a keen interest in science, technology and engineering through
-          which he reflects environment and culture.
+    const data = useStaticQuery(graphql`
+    query ForewordQuery {
+        contentfulForeword(contentful_id: {eq: "1rGDT0Tu3V9MnuskUVFmam"}) {
+            text {
+                text
+                childrenMarkdownRemark {
+                    rawMarkdownBody
+                }
+            }
+        }
+    }
+    `)
+    const foreword = data.contentfulForeword.text.text
+    const paras = foreword.split('\n')
+
+    const forewordParagraphs = paras.map((item, index) => (
+        <Text key={index} as="p" variant="large">
+            {item}
         </Text>
-      </section>
-      <Projects />
-    </Layout>
-  )
+    ))
+    return (
+        <Layout>
+            <Seo title="Home" />
+            <section className={styles.foreword}>
+                {forewordParagraphs}
+            </section>
+            <Projects />
+        </Layout>
+    )
 }
+
 export default RootIndex
+
