@@ -24,13 +24,62 @@ Creative portfolio website for **[joshhd.co.uk][website]**.
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/d2952c51-8025-4a5b-8022-e3b86aedcff2/deploy-status)](https://app.netlify.com/sites/joshhd/deploys)
 
-Built with Gatsby, Contentful and GraphQL, deployed via Netlify, managed with kanban project in GitHub.
+Built with Gatsby, Contentful and GraphQL, deployed via Netlify, managed with
+kanban project in GitHub.
 
 [website]: https://joshhd.netlify.app
 
 ---
 
+## Requirements
+
+- only tested to node `v16.20.2`
+- install using `nvm install 16.20.2`
+- use elevated shell to set nvm to use this version: `nvm use 16.20.2`
+
+## Setup
+
+- install dependencies
+
+```shell
+npm i
+```
+
+- run setup script
+
+```shell
+npm run setup
+```
+
+## Loading Data
+
+- Install Contentful CLI if you haven't
+
+```shell
+npm install -g contentful-cli
+```
+
+- Login to Contentful
+
+```shell
+contentful login
+```
+
+- paste the code from the browser to the cli
+- get Space Id and content delivery token from Settings > Api keys
+- Export your space data
+
+```shell
+contentful space export `
+  --space-id YOUR_SPACE_ID `
+  --management-token YOUR_MANAGEMENT_TOKEN `
+  --export-dir ./contentful `
+  --content-file export.json
+```
+
 ## Environment variables
+
+- [!] **Note: Setup script creates these for you.**
 
 Put Contentful env variables in `.env.production` file:
 
