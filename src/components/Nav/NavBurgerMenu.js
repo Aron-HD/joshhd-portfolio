@@ -48,44 +48,44 @@ const StyledMenu = styled.nav`
 `
 
 const NavMenu = ({ open }) => {
-  return (
-    <StyledMenu open={open}>
-      <ul
-        sx={{
-          'li:hover': {
-            bg: 'primary',
-            a: { color: 'text' },
-          },
-          a: { color: 'primary' },
-        }}
-      >
-        <li>
-          <Link className="menu" to="/">
-            <Text variant="heading">Home</Text>
-          </Link>
-        </li>
-        <li>
-          <Link className="menu" to="/about">
-            <Text variant="heading">About</Text>
-          </Link>
-        </li>
-        <li>
-          <Link className="menu" to="portfolio.pdf" target="_blank">
-            <Text variant="heading">Portfolio</Text>
-          </Link>
-        </li>
-        <li>
-          <Link className="menu" to="cv.pdf" target="_blank">
-            <Text variant="heading">cv</Text>
-          </Link>
-        </li>
-      </ul>
-    </StyledMenu>
-  )
+    return (
+        <StyledMenu open={open}>
+            <ul
+                sx={{
+                    'li:hover': {
+                        bg: 'primary',
+                        a: { color: 'text' },
+                    },
+                    a: { color: 'primary' },
+                }}
+            >
+                <li>
+                    <Link className="menu" to="/">
+                        <Text variant="heading">Home</Text>
+                    </Link>
+                </li>
+                <li>
+                    <Link className="menu" to="/about">
+                        <Text variant="heading">About</Text>
+                    </Link>
+                </li>
+                <li>
+                    <Link className="menu" to="/portfolio.pdf" target="_blank">
+                        <Text variant="heading">Portfolio</Text>
+                    </Link>
+                </li>
+                <li>
+                    <Link className="menu" to="/cv.pdf" target="_blank">
+                        <Text variant="heading">cv</Text>
+                    </Link>
+                </li>
+            </ul>
+        </StyledMenu>
+    )
 }
 
 NavMenu.propTypes = {
-  open: bool.isRequired,
+    open: bool.isRequired,
 }
 
 export default NavMenu
