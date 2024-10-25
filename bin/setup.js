@@ -1,5 +1,5 @@
 const spaceImport = require("contentful-import");
-const exportFile = require("../contentful/export.json");
+// const exportFile = require("../contentful/export.json");
 const inquirer = require("inquirer");
 const chalk = require("chalk");
 const path = require("path");
@@ -47,8 +47,7 @@ const questions = [
   },
   {
     name: "accessToken",
-    when:
-      !argv.accessToken &&
+    when: !argv.accessToken &&
       !process.env.CONTENTFUL_ACCESS_TOKEN &&
       !argv.deliveryToken &&
       !process.env.CONTENTFUL_DELIVERY_TOKEN,
@@ -74,8 +73,7 @@ inquirer
     // `CONTENTFUL_ACCESS_TOKEN`. Until all scripts are updated to
     // use `accessToken` and `CONTENTFUL_ACCESS_TOKEN` both variations
     // will work.
-    accessToken =
-      CONTENTFUL_ACCESS_TOKEN ||
+    accessToken = CONTENTFUL_ACCESS_TOKEN ||
       CONTENTFUL_DELIVERY_TOKEN ||
       argv.accessToken ||
       argv.deliveryToken ||
@@ -86,14 +84,13 @@ inquirer
       path.join(__dirname, "..", file)
     );
 
-    const fileContents =
-      [
-        `# All environment variables will be sourced`,
-        `# and made available to gatsby-config.js, gatsby-node.js, etc.`,
-        `# Do NOT commit this file to source control`,
-        `CONTENTFUL_SPACE_ID='${spaceId}'`,
-        `CONTENTFUL_ACCESS_TOKEN='${accessToken}'`,
-      ].join("\n") + "\n";
+    const fileContents = [
+      `# All environment variables will be sourced`,
+      `# and made available to gatsby-config.js, gatsby-node.js, etc.`,
+      `# Do NOT commit this file to source control`,
+      `CONTENTFUL_SPACE_ID='${spaceId}'`,
+      `CONTENTFUL_ACCESS_TOKEN='${accessToken}'`,
+    ].join("\n") + "\n";
 
     configFiles.forEach((file) => {
       writeFileSync(file, fileContents, "utf8");
@@ -101,14 +98,17 @@ inquirer
     });
     return { spaceId, managementToken };
   })
-  .then(({ spaceId, managementToken }) =>
-    spaceImport({ spaceId, managementToken, content: exportFile })
-  )
-  .then((_, error) => {
+  // // DO NOT EXPORT THE DATA
+  // .then(({ spaceId, managementToken }) =>
+  //   spaceImport({ spaceId, managementToken, content: exportFile })
+  // )
+  .then(() => {
     console.log(
-      `All set! You can now run ${chalk.yellow(
-        "npm run dev"
-      )} to see it in action.`
+      `All set! You can now run ${
+        chalk.yellow(
+          "npm run dev",
+        )
+      } to see it in action.`,
     );
   })
   .catch((error) => console.error(error));
