@@ -9,12 +9,10 @@ import Seo from '../components/Seo'
 import * as styles from '../styles/about.module.scss'
 
 const RootIndex = () => {
-  const data = useStaticQuery(graphql`
+    const data = useStaticQuery(graphql`
     query AboutQuery {
       contentfulPerson(contentful_id: { eq: "6Fr0UwYXtgWexoF4sAVdJ5" }) {
-        contentful_id
         fullName
-        twitter
         company
         jobTitle
         linkedIn
@@ -36,30 +34,30 @@ const RootIndex = () => {
       }
     }
   `)
-  const bio = data.contentfulPerson.bio.childMarkdownRemark.html
-  return (
-    <Layout>
-      <Seo title="About" />
-      <section className={styles.about}>
-        {data.contentfulPerson.headshot && (
-          <GatsbyImage
-            className={styles.headshot}
-            alt={data.contentfulPerson.fullName}
-            image={getImage(data.contentfulPerson.headshot)}
-          />
-        )}
-        <div className={styles.bio}>
-          <Heading as="h1">{data.contentfulPerson.fullName}</Heading>
-          {bio && (
-            <div
-              dangerouslySetInnerHTML={{
-                __html: bio,
-              }}
-            />
-          )}
-        </div>
-      </section>
-    </Layout>
-  )
+    const bio = data.contentfulPerson.bio.childMarkdownRemark.html
+    return (
+        <Layout>
+            <Seo title="About" />
+            <section className={styles.about}>
+                {data.contentfulPerson.headshot && (
+                    <GatsbyImage
+                        className={styles.headshot}
+                        alt={data.contentfulPerson.fullName}
+                        image={getImage(data.contentfulPerson.headshot)}
+                    />
+                )}
+                <div className={styles.bio}>
+                    <Heading as="h1">{data.contentfulPerson.fullName}</Heading>
+                    {bio && (
+                        <div
+                            dangerouslySetInnerHTML={{
+                                __html: bio,
+                            }}
+                        />
+                    )}
+                </div>
+            </section>
+        </Layout>
+    )
 }
 export default RootIndex

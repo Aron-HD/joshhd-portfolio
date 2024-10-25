@@ -1,41 +1,42 @@
 import React from 'react'
 import styled from '@emotion/styled'
+import { graphql, useStaticQuery } from 'gatsby'
 
 const StyledUl = styled.ul`
-  list-style: none;
-  font-size: x-small;
-  padding-inline-start: 0;
-  li {
-    a {
-      text-decoration: underline;
+    list-style: none;
+    font-size: x-small;
+    padding-inline-start: 0;
+    li {
+        a {
+            text-decoration: underline;
+        }
     }
-  }
 `
 
 const ContactInfo = () => {
-  return (
-    <StyledUl>
-      <li>
-        <a
-          target="_blank"
-          href="https://www.rca.ac.uk/students/joshua-hayes-davidson/"
-          rel="noreferrer noopener"
-        >
-          Joshua Hayes Davidson
-        </a>
-      </li>
-      <li>Visual Communication 2017</li>
-      <li>
-        <a
-          target="_blank"
-          href="https://twitter.com/4KJoshua"
-          rel="noreferrer noopener"
-        >
-          @4KJoshua
-        </a>
-      </li>
-    </StyledUl>
-  )
+    const { contentfulPerson } = useStaticQuery(graphql`
+        query joshQuery {
+            contentfulPerson(contentful_id: {eq: "6Fr0UwYXtgWexoF4sAVdJ5"}) {
+                jobTitle
+                fullName
+                linkedIn
+            }
+        }
+    `)
+    return (
+        <StyledUl>
+            <li>
+                <a
+                    target="_blank"
+                    href={contentfulPerson.linkedIn}
+                    rel="noreferrer noopener"
+                >
+                    {contentfulPerson.fullName}
+                </a>
+            </li>
+            <li>{contentfulPerson.jobTitle}</li>
+        </StyledUl>
+    )
 }
 
 export default ContactInfo

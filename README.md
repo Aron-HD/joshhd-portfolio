@@ -37,6 +37,9 @@ kanban project in GitHub.
 - install using `nvm install 16.20.2`
 - use elevated shell to set nvm to use this version: `nvm use 16.20.2`
 
+- [!] node-gyp errors relating to visual studio can be resolved by running in VS
+  Command Prompt to ensure native build tools are used for C++.
+
 ## Setup
 
 - install dependencies
