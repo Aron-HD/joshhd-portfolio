@@ -75,20 +75,22 @@ const Project = (props) => {
     },
   }
 
-    const [_, setColorMode] = useColorMode()
+  const theme = props.data.contentfulProject.theme
+  const [, setColorMode] = useColorMode()
 
-    useEffect(() => {
-        const theme = props.data.contentfulProject.theme
-        if (theme) {
-            console.debug(`setting color mode: ${theme}`)
-            setColorMode(theme.toLowerCase())
-        }
-        return () => {
-            console.debug('resetting color mode.')
-            const original = localStorage.getItem('theme')
-            if (original) setColorMode(original.toLowerCase())
-        }
-    }, [])
+  useEffect(() => {
+    // set page based color mode from cms
+    if (theme) {
+      console.debug(`setting color mode: ${theme}`)
+      setColorMode(theme.toLowerCase())
+    }
+    // reset to the original color mode when unmounting
+    return () => {
+      console.debug('resetting color mode.')
+      const original = localStorage.getItem('theme')
+      if (original) setColorMode(original.toLowerCase())
+    }
+  }, [theme, setColorMode])
 
   return (
     <LayoutAlt>
@@ -97,6 +99,7 @@ const Project = (props) => {
         <GatsbyImage
           className={styles.backgroundImage}
           image={getImage(backgroundImage)}
+          alt={backgroundImage.description ?? "Background image"}
         />
       )}
       <section className={styles.title}>
@@ -122,10 +125,10 @@ const Project = (props) => {
               src={heroVideo}
               width="800px"
               height="450px"
-              frameborder="0"
+              frameBorder="0"
               webkitallowfullscreen=""
               mozallowfullscreen=""
-              allowfullscreen=""
+              allowFullScreen=""
             />
           </section>
         )}
@@ -134,12 +137,13 @@ const Project = (props) => {
         </section>
         {linkedAssets && (
           <section className={styles.linkedAssets}>
-            {linkedAssets.map((asset) => {
+            {linkedAssets.map((asset, i) => {
               return (
                 <GatsbyImage
                   className={styles.asset}
                   image={getImage(asset)}
-                  alt={asset.description}
+                  alt={asset.description ?? "Blank"}
+                  key={i}
                 />
               )
             })}
