@@ -1,15 +1,18 @@
 import React from 'react'
 import { useColorMode, Button } from 'theme-ui'
 
-const ThemeSwitch = (props) => {
+const ThemeSwitch = (_props) => {
   const [colorMode, setColorMode] = useColorMode()
   return (
     <Button
-      onClick={(e) => {
-        setColorMode(colorMode === 'default' ? 'dark' : 'default')
+      onClick={(_e) => {
+        const mode = colorMode === 'default' || colorMode === 'dark' ? 'light' : 'dark'
+        setColorMode(mode)
+        localStorage.setItem('theme', mode)
+        console.debug(mode)
       }}
     >
-      {colorMode === 'default' ? 'Dark' : 'Light'}
+      {colorMode !== 'light' ? 'Light' : 'Dark'}
     </Button>
   )
 }

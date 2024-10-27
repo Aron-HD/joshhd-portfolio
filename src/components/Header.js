@@ -4,6 +4,23 @@ import ThemeSwitch from './ThemeSwitcher'
 import NavBurger from './Nav/NavBurger'
 import NavBurgerMenu from './Nav/NavBurgerMenu'
 
+const Header = () => {
+  const [open, setOpen] = useState(false)
+  return (
+    <StyledHeader>
+      <div className="left">
+        <ThemeSwitch />
+      </div>
+      <div className="right">
+        <NavBurger open={open} setOpen={setOpen} />
+        <NavBurgerMenu open={open} setOpen={setOpen} />
+      </div>
+    </StyledHeader>
+  )
+}
+
+export default Header
+
 const StyledHeader = styled.header`
   display: -webkit-flex;
   display: -webkit-box;
@@ -48,19 +65,3 @@ const StyledHeader = styled.header`
   }
 `
 
-const Header = () => {
-  const [open, setOpen] = useState(false)
-  return (
-    <StyledHeader>
-      <div className="left">
-        <ThemeSwitch />
-      </div>
-      <div className="right">
-        <NavBurger open={open} setOpen={setOpen} />
-        <NavBurgerMenu open={open} setOpen={setOpen} />
-      </div>
-    </StyledHeader>
-  )
-}
-
-export default Header

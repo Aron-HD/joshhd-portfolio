@@ -1,9 +1,10 @@
 /** @jsx jsx */
-import { jsx, Heading, Text } from 'theme-ui'
+import { jsx, Heading, Text, useColorMode } from 'theme-ui'
 import { graphql } from 'gatsby'
 import { BLOCKS, MARKS } from '@contentful/rich-text-types'
 import { renderRichText } from 'gatsby-source-contentful/rich-text'
 import { GatsbyImage, getImage } from 'gatsby-plugin-image'
+import { useEffect } from 'react'
 
 import LayoutAlt from '../components/LayoutAlt'
 import Seo from '../components/Seo'
@@ -74,11 +75,25 @@ const Project = (props) => {
     },
   }
 
-  // const [colorMode, setColorMode] = useColorMode()
-  // const theme = props.data.contentfulProject.theme
-  // if (theme) {
-  //   setColorMode(theme.toLowerCase())
-  // }
+  const theme = props.data.contentfulProject.theme
+  const [colorMode, setColorMode] = useColorMode()
+
+  useEffect(() => {
+    const t = theme?.toLowerCase() ?? "default"
+    // set page based color mode from cms
+    if (t !== 'default' && t !== colorMode) {
+      console.debug(`setting color mode: ${theme}`)
+      setColorMode(t)
+    }
+    // reset to the original color mode when unmounting
+    return () => {
+      const original = localStorage.getItem('theme')?.toLowerCase()
+      if (original && original !== colorMode) {
+        setColorMode(original)
+        console.debug('resetting color mode.')
+      }
+    }
+  }, [theme, colorMode, setColorMode])
 
   return (
     <LayoutAlt>
@@ -87,6 +102,7 @@ const Project = (props) => {
         <GatsbyImage
           className={styles.backgroundImage}
           image={getImage(backgroundImage)}
+          alt={backgroundImage.description ?? "Background image"}
         />
       )}
       <section className={styles.title}>
@@ -112,10 +128,10 @@ const Project = (props) => {
               src={heroVideo}
               width="800px"
               height="450px"
-              frameborder="0"
+              frameBorder="0"
               webkitallowfullscreen=""
               mozallowfullscreen=""
-              allowfullscreen=""
+              allowFullScreen=""
             />
           </section>
         )}
@@ -124,12 +140,13 @@ const Project = (props) => {
         </section>
         {linkedAssets && (
           <section className={styles.linkedAssets}>
-            {linkedAssets.map((asset) => {
+            {linkedAssets.map((asset, i) => {
               return (
                 <GatsbyImage
                   className={styles.asset}
                   image={getImage(asset)}
-                  alt={asset.description}
+                  alt={asset.description ?? "Blank"}
+                  key={i}
                 />
               )
             })}

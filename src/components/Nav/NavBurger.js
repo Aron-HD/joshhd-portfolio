@@ -22,16 +22,16 @@ const StyledBurger = styled.button`
     opacity: 0.9;
     transform-origin: 5px;
 
-    :first-child {
+    :first-of-type {
       transform: ${({ open }) => (open ? 'rotate(45deg)' : 'rotate(0)')};
     }
 
-    :nth-child(2) {
+    :nth-of-type(2) {
       opacity: ${({ open }) => (open ? '0' : '1')};
       transform: ${({ open }) => (open ? 'translateX(20px)' : 'translateX(0)')};
     }
 
-    :nth-child(3) {
+    :nth-of-type(3) {
       transform: ${({ open }) => (open ? 'rotate(-45deg)' : 'rotate(0)')};
     }
   }
