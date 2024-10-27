@@ -29,6 +29,7 @@ const RootIndex = () => {
             {item}
         </Text>
     ))
+
     return (
         <Layout>
             <Seo title="Home" />

@@ -1,9 +1,10 @@
 /** @jsx jsx */
-import { jsx, Heading, Text } from 'theme-ui'
+import { jsx, Heading, Text, useColorMode } from 'theme-ui'
 import { graphql } from 'gatsby'
 import { BLOCKS, MARKS } from '@contentful/rich-text-types'
 import { renderRichText } from 'gatsby-source-contentful/rich-text'
 import { GatsbyImage, getImage } from 'gatsby-plugin-image'
+import { useEffect } from 'react'
 
 import LayoutAlt from '../components/LayoutAlt'
 import Seo from '../components/Seo'
@@ -74,11 +75,20 @@ const Project = (props) => {
     },
   }
 
-  // const [colorMode, setColorMode] = useColorMode()
-  // const theme = props.data.contentfulProject.theme
-  // if (theme) {
-  //   setColorMode(theme.toLowerCase())
-  // }
+    const [_, setColorMode] = useColorMode()
+
+    useEffect(() => {
+        const theme = props.data.contentfulProject.theme
+        if (theme) {
+            console.debug(`setting color mode: ${theme}`)
+            setColorMode(theme.toLowerCase())
+        }
+        return () => {
+            console.debug('resetting color mode.')
+            const original = localStorage.getItem('theme')
+            if (original) setColorMode(original.toLowerCase())
+        }
+    }, [])
 
   return (
     <LayoutAlt>
