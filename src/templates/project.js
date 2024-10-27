@@ -76,21 +76,24 @@ const Project = (props) => {
   }
 
   const theme = props.data.contentfulProject.theme
-  const [, setColorMode] = useColorMode()
+  const [colorMode, setColorMode] = useColorMode()
 
   useEffect(() => {
+    const t = theme?.toLowerCase() ?? "default"
     // set page based color mode from cms
-    if (theme) {
+    if (t !== 'default' && t !== colorMode) {
       console.debug(`setting color mode: ${theme}`)
-      setColorMode(theme.toLowerCase())
+      setColorMode(t)
     }
     // reset to the original color mode when unmounting
     return () => {
-      console.debug('resetting color mode.')
-      const original = localStorage.getItem('theme')
-      if (original) setColorMode(original.toLowerCase())
+      const original = localStorage.getItem('theme')?.toLowerCase()
+      if (original && original !== colorMode) {
+        setColorMode(original)
+        console.debug('resetting color mode.')
+      }
     }
-  }, [theme, setColorMode])
+  }, [theme, colorMode, setColorMode])
 
   return (
     <LayoutAlt>
