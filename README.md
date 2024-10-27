@@ -33,16 +33,15 @@ kanban project in GitHub.
 
 ## Requirements
 
-- only tested to node `v16.20.2`
-- install using `nvm install 16.20.2`
-- use elevated shell to set nvm to use this version: `nvm use 16.20.2`
-
-- [!] node-gyp errors relating to visual studio can be resolved by running in VS
-  Command Prompt to ensure native build tools are used for C++.
+- tested to node `v18.20.4`, `v21.x`
+- install using `nvm install 18`
+- use elevated shell to set nvm to use this version: `nvm use 18`
 
 ## Setup
 
 - install dependencies
+- [!] node-gyp errors relating to visual studio can be resolved by running in VS
+  Command Prompt to ensure native build tools are used for C++.
 
 ```shell
 npm i
@@ -54,7 +53,7 @@ npm i
 npm run setup
 ```
 
-## Loading Data
+## Exporting Contentful Data
 
 - Install Contentful CLI if you haven't
 
