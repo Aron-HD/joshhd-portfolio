@@ -1,65 +1,79 @@
 .projects {
-  display: flex;
-  flex-direction: column;
-  margin: 2rem;
-  padding: 2rem;
-  h3 {
-    margin: 1rem 0;
-  }
-  .projectCards {
-    display: grid;
-    padding: 5px;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
-    .projectCard {
-      display: grid;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      position: relative;
-      transition: transform 0.3s; /* Scale Animation */
-      .thumbnail {
-        display: inherit;
-      }
-      h4 {
-        position: absolute;
-        transition: 0.5s ease;
-        opacity: 0;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 10;
-      }
-      &:hover {
-        /* hover each project */
-        transform: scale(1.025); /* transition */
-      }
+    display: flex;
+    flex-direction: column;
+    margin: 2rem;
+    padding: 2rem;
+
+    h3 {
+        margin: 1rem 0;
     }
-    &:hover {
-      /* hover all projects */
-      h4 {
-        opacity: 0.9;
-      }
+
+    .projectCards {
+        display: grid;
+        padding: 5px;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+
+        .projectCard {
+            display: grid;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+            transition: transform 0.3s;
+
+            /* Scale Animation */
+            .thumbnail {
+                display: inherit;
+            }
+
+            h4 {
+                position: absolute;
+                transition: 0.5s ease;
+                opacity: 0;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                z-index: 10;
+            }
+
+            &:hover {
+                /* hover each project */
+                transform: scale(1.025);
+                /* transition */
+            }
+        }
+
+        &:hover {
+
+            /* hover all projects */
+            h4 {
+                opacity: 0.9;
+            }
+        }
     }
-  }
 }
 
 @media (max-width: 1400px) {
-  .projects {
-    margin: 10px;
-    padding: 10px;
-    .projectCards {
-      grid-template-columns: repeat(3, 1fr);
+    .projects {
+        margin: 10px;
+        padding: 10px;
+
+        .projectCards {
+            gap: 0.7rem;
+            grid-template-columns: repeat(3, 1fr);
+        }
     }
-  }
 }
 
 @media (max-width: 600px) {
-  .projects {
-    margin: 10px;
-    padding: 10px;
-    .projectCards {
-      grid-template-columns: repeat(2, 1fr);
+    .projects {
+        margin: 10px;
+        padding: 10px;
+
+        .projectCards {
+            gap: 0.4rem;
+            grid-template-columns: repeat(2, 1fr);
+        }
     }
-  }
 }

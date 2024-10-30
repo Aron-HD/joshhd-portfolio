@@ -1,16 +1,25 @@
 section.foreword {
-  max-width: 20vw;
+    max-width: 50vw;
+
+    h1 {
+        font-size: 2.5rem;
+    }
+
+    h3 {
+        font-size: 1.5rem;
+        font-weight: 400;
+    }
 }
 
 @media (max-width: 1400px) {
-  section.foreword {
-    max-width: 50vw;
-  }
+    section.foreword {
+        max-width: 80vw;
+    }
 }
 
 @media (max-width: 700px) {
-  section.foreword {
-    text-align: left;
-    max-width: 80vw;
-  }
+    section.foreword {
+        text-align: left;
+        max-width: 80vw;
+    }
 }

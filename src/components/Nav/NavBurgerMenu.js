@@ -103,6 +103,8 @@ const StyledMenu = styled.nav`
         /* opacity: 1; */
         text-align: left;
         transition: text-align 0.6s;
+        border-top-left-radius: 4px;
+        border-bottom-left-radius: 4px;
         a.menu {
           /* opacity: 1; */
           margin-right: 8rem;
