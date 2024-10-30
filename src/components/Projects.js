@@ -19,7 +19,7 @@ const Projects = () => {
                   formats: AUTO
                   layout: CONSTRAINED
                   placeholder: BLURRED
-                  quality: 100
+                  quality: 80
                   width: 600
                 )
               }
