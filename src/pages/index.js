@@ -13,28 +13,21 @@ const RootIndex = () => {
     query ForewordQuery {
         contentfulForeword(contentful_id: {eq: "1rGDT0Tu3V9MnuskUVFmam"}) {
             text {
-                text
                 childrenMarkdownRemark {
-                    rawMarkdownBody
+                    html
                 }
             }
         }
     }
     `)
-    const foreword = data.contentfulForeword.text.text
-    const paras = foreword.split('\n')
 
-    const forewordParagraphs = paras.map((item, index) => (
-        <Text key={index} as="p" variant="large">
-            {item}
-        </Text>
-    ))
+    const foreword = data.contentfulForeword.text.childrenMarkdownRemark[0]?.html
+    console.dir(data)
 
     return (
         <Layout>
             <Seo title="Home" />
-            <section className={styles.foreword}>
-                {forewordParagraphs}
+            <section className={styles.foreword} dangerouslySetInnerHTML={{ __html: foreword }}>
             </section>
             <Projects />
         </Layout>
