@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dash to the Match - Wimbledon Hat Refinement</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --wim-green: #00563f;
+            --wim-purple: #4a2c7a;
+            --amex-blue: #00175a;
+            --ball-yellow: #e4e52a;
+            --power-blue: #03a9f4;
+            --power-green: #a8e013;
+            --sunset-peach: #f4b9a7;
+        }
+        body {
+            margin: 0; padding: 0; background: #050505;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh;
+            font-family: 'Benton Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            user-select: none; overflow: hidden;
+        }
+
+        #game-container {
+            height: 100vh; width: auto; aspect-ratio: 9 / 16; max-width: 100vw;
+            background: linear-gradient(to bottom, #a06ab4 0%, #e8a5b1 40%, var(--sunset-peach) 80%, var(--sunset-peach) 100%);
+            position: relative;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5); overflow: hidden;
+        }
+
+        #webgl-canvas { width: 100%; height: 100%; display: block; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+
+        /* --- SCORE & MULTIPLIER DISPLAY --- */
+        #score-hud {
+            position: absolute; top: 4%; left: 50%; transform: translateX(-50%);
+            text-align: center; color: var(--wim-purple);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        #score-label {
+            display: block; font-size: clamp(10px, 1.2vh, 16px);
+            font-weight: 800; text-transform: uppercase; letter-spacing: 2px;
+            margin-bottom: 6px;
+        }
+        #score-wrapper { position: relative; display: inline-block; }
+
+        #score-glow {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 25vh; height: 25vh;
+            background: radial-gradient(50% 50% at 50% 50%, rgba(252,232,179,0.7) 0%, rgba(252,232,179,0) 100%);
+            transition: background 0.3s ease;
+            z-index: -1; border-radius: 50%;
+        }
+
+        #score-val {
+            font-size: clamp(28px, 5vh, 64px); font-weight: 900; line-height: 1;
+            transition: color 0.3s, -webkit-text-stroke 0.3s;
+        }
+
+        #score-hud.x2-active #score-val {
+            color: #ffffff;
+            -webkit-text-stroke: clamp(0.5px, 0.15vh, 1.5px) var(--amex-blue);
+        }
+
+        #multiplier-text {
+            display: none;
+            font-size: clamp(10px, 1.2vh, 16px);
+            font-weight: 800; text-transform: uppercase; letter-spacing: 2px;
+            margin-top: 6px;
+            color: var(--wim-purple);
+        }
+
+        #score-hud.x2-active #multiplier-text {
+            display: block;
+        }
+
+        /* --- MINIMALIST LIVES HUD --- */
+        #status-hud {
+            position: absolute; top: 4%; left: 5%;
+            background: rgba(74, 44, 122, 0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            padding: 2% 3%; border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.15);
+            display: inline-block;
+        }
+        #lives-val {
+            display: flex; gap: clamp(4px, 0.8vh, 10px); align-items: center; justify-content: center;
+        }
+
+        #game-over-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(74, 44, 122, 0.95); color: white;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            pointer-events: auto; z-index: 100;
+        }
+        #game-over-screen h1 { margin: 0 0 2% 0; color: var(--ball-yellow); font-size: clamp(24px, 4vh, 60px); text-transform: uppercase;}
+        #restart-btn {
+            margin-top: 5%; padding: 2% 5%; font-size: clamp(14px, 2vh, 30px); font-weight: bold;
+            background: var(--wim-green); color: white; border: 2px solid white; border-radius: 40px; cursor: pointer;
+            font-family: inherit; letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="webgl-canvas"></canvas>
+        <div id="ui-layer">
+            <div id="status-hud">
+                <div id="lives-val"></div>
+            </div>
+
+            <div id="score-hud">
+                <span id="score-label">Score</span>
+                <div id="score-wrapper"><div id="score-glow"></div><div id="score-val">0</div></div>
+                <span id="multiplier-text">x 2</span>
+            </div>
+        </div>
+        <div id="game-over-screen">
+            <h1>Game Over</h1>
+            <p style="font-size: clamp(14px, 2.5vh, 40px);">Final Score: <span id="final-score" style="font-weight:bold; color: var(--ball-yellow);">0</span></p>
+            <button id="restart-btn" onclick="location.reload()">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+        if (typeof THREE === "undefined") {
+            alert("Three.js failed to load. Please check your internet connection or browser settings.");
+            throw new Error("Three.js library is missing. Halting game execution to prevent cascade errors.");
+        }
+
+        // --- THREE.JS SETUP ---
+        const canvas = document.getElementById('webgl-canvas');
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+        renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+        renderer.setClearColor(0x000000, 0);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0xf4b9a7, 30, 100);
+
+        const camera = new THREE.PerspectiveCamera(65, canvas.clientWidth / canvas.clientHeight, 0.1, 150);
+        camera.position.set(0, 7.5, 12);
+        camera.lookAt(0, 2.5, -5);
+
+        const ambientLight = new THREE.AmbientLight(0xffe6cc, 0.8); scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffd1a4, 0.7);
+        dirLight.position.set(-15, 25, 10); dirLight.castShadow = true; scene.add(dirLight);
+
+        // --- PROCEDURAL TEXTURES ---
+        function createTennisTexture() {
+            const ctx = document.createElement('canvas').getContext('2d');
+            ctx.canvas.width = 256; ctx.canvas.height = 256;
+            ctx.fillStyle = '#e4e52a'; ctx.fillRect(0, 0, 256, 256);
+            ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 12;
+            ctx.beginPath(); ctx.arc(0, 128, 80, -Math.PI/2, Math.PI/2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(256, 128, 80, Math.PI/2, 3*Math.PI/2); ctx.stroke();
+            return new THREE.CanvasTexture(ctx.canvas);
+        }
+
+        // Procedural Striped Wimbledon Hat Band
+        function createHatBandTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+
+            // Base layer: Navy blue edges
+            ctx.fillStyle = '#00175a';
+            ctx.fillRect(0, 0, 256, 64);
+
+            // White stripes inset from the edges
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 8, 256, 48);
+
+            // Thick green center stripe
+            ctx.fillStyle = '#00563f';
+            ctx.fillRect(0, 18, 256, 28);
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // --- VECTOR-BASED CROWD GEOMETRY ---
+        function createCrowdGeometries() {
+            const headGeo = new THREE.CircleGeometry(0.35, 16);
+            headGeo.translate(0, 1.45, 0);
+
+            const shape = new THREE.Shape();
+            shape.moveTo(-0.5, 0);
+            shape.lineTo(-0.5, 0.7);
+            shape.quadraticCurveTo(-0.5, 1.1, -0.15, 1.15);
+            shape.lineTo(0.15, 1.15);
+            shape.quadraticCurveTo(0.5, 1.1, 0.5, 0.7);
+            shape.lineTo(0.5, 0);
+
+            const bodyGeo = new THREE.ShapeGeometry(shape);
+            return { headGeo, bodyGeo };
+        }
+
+        // --- STADIUM ARCHITECTURE ---
+        const colorGrass = 0x5fa641;
+        const colorWall = 0x34702e;
+        const colorStands = 0x24541e;
+
+        const trackWidth = 8; const trackLength = 140;
+        const track = new THREE.Mesh(new THREE.PlaneGeometry(trackWidth, trackLength), new THREE.MeshStandardMaterial({ color: 0x9ba4b5, roughness: 0.8 }));
+        track.rotation.x = -Math.PI / 2; track.receiveShadow = true; scene.add(track);
+
+        const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const line1 = new THREE.Mesh(new THREE.PlaneGeometry(0.15, trackLength), lineMat); line1.rotation.x = -Math.PI / 2; line1.position.set(-1.3, 0.01, 0); scene.add(line1);
+        const line2 = new THREE.Mesh(new THREE.PlaneGeometry(0.15, trackLength), lineMat); line2.rotation.x = -Math.PI / 2; line2.position.set(1.3, 0.01, 0); scene.add(line2);
+
+        const grassMat = new THREE.MeshStandardMaterial({ color: colorGrass, roughness: 1.0 });
+        const grassLeft = new THREE.Mesh(new THREE.PlaneGeometry(5, trackLength), grassMat); grassLeft.rotation.x = -Math.PI / 2; grassLeft.position.set(-6.5, 0.02, 0); grassLeft.receiveShadow = true; scene.add(grassLeft);
+        const grassRight = new THREE.Mesh(new THREE.PlaneGeometry(5, trackLength), grassMat); grassRight.rotation.x = -Math.PI / 2; grassRight.position.set(6.5, 0.02, 0); grassRight.receiveShadow = true; scene.add(grassRight);
+
+        const wallMat = new THREE.MeshStandardMaterial({ color: colorWall, roughness: 0.9 });
+        const wallL = new THREE.Mesh(new THREE.BoxGeometry(1, 2.5, trackLength), wallMat); wallL.position.set(-9.5, 1.25, 0); wallL.receiveShadow = true; scene.add(wallL);
+        const wallR = new THREE.Mesh(new THREE.BoxGeometry(1, 2.5, trackLength), wallMat); wallR.position.set(9.5, 1.25, 0); wallR.receiveShadow = true; scene.add(wallR);
+
+        const standMat = new THREE.MeshStandardMaterial({ color: colorStands, roughness: 0.9 });
+
+        // --- POPULATE THE VECTOR CROWD ---
+        const { headGeo, bodyGeo } = createCrowdGeometries();
+        const crowdColors = [0x4a2c7a, 0x5c3882, 0x3d2166, 0x6b4694, 0x2e154f];
+        const crowdMats = crowdColors.map(c => new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide }));
+
+        for (let step = 0; step < 4; step++) {
+            const tierHeight = 1.5; const tierDepth = 2.5;
+            const yBase = 2.5 + (step * tierHeight);
+            const xL = -11.25 - (step * tierDepth); const xR = 11.25 + (step * tierDepth);
+
+            const lStand = new THREE.Mesh(new THREE.BoxGeometry(tierDepth, tierHeight, trackLength), standMat);
+            lStand.position.set(xL, yBase - (tierHeight/2), 0); lStand.receiveShadow = true; scene.add(lStand);
+            const rStand = new THREE.Mesh(new THREE.BoxGeometry(tierDepth, tierHeight, trackLength), standMat);
+            rStand.position.set(xR, yBase - (tierHeight/2), 0); rStand.receiveShadow = true; scene.add(rStand);
+
+            for(let z = -90; z < 20; z += 1.5) {
+                if(Math.random() > 0.3) {
+                    const mat = crowdMats[Math.floor(Math.random() * crowdMats.length)];
+                    const person = new THREE.Group();
+                    person.add(new THREE.Mesh(bodyGeo, mat)); person.add(new THREE.Mesh(headGeo, mat));
+
+                    const w = 0.8 + Math.random() * 0.4; const h = 0.8 + Math.random() * 0.4;
+                    person.scale.set(w, h, 1);
+                    person.position.set(xL + (Math.random()*1.5 - 0.75), yBase, z + (Math.random()*0.8));
+                    person.rotation.y = Math.PI / 6; scene.add(person);
+                }
+                if(Math.random() > 0.3) {
+                    const mat = crowdMats[Math.floor(Math.random() * crowdMats.length)];
+                    const person = new THREE.Group();
+                    person.add(new THREE.Mesh(bodyGeo, mat)); person.add(new THREE.Mesh(headGeo, mat));
+
+                    const w = 0.8 + Math.random() * 0.4; const h = 0.8 + Math.random() * 0.4;
+                    person.scale.set(w, h, 1);
+                    person.position.set(xR - (Math.random()*1.5 - 0.75), yBase, z + (Math.random()*0.8));
+                    person.rotation.y = -Math.PI / 6; scene.add(person);
+                }
+            }
+        }
+
+        const lanePositions = [-2.6, 0, 2.6]; let currentLaneIndex = 1;
+
+        // --- THE "PUPPET" STICKMAN ---
+        const playerGroup = new THREE.Group(); scene.add(playerGroup);
+        const matBlack = new THREE.MeshStandardMaterial({ color: 0x1a0b2e, roughness: 0.8 });
+        function createLimb(radius, length, xOffset, yPivot, material = matBlack) {
+            const geo = new THREE.CylinderGeometry(radius, radius, length, 8); geo.translate(0, -length / 2, 0);
+            const mesh = new THREE.Mesh(geo, material); mesh.position.set(xOffset, yPivot, 0); mesh.castShadow = true; return mesh;
+        }
+
+        const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.3, 2.2, 8), matBlack);
+        torso.position.y = 2.6; torso.castShadow = true; playerGroup.add(torso);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.55, 16, 16), matBlack);
+        head.position.y = 4.1; head.castShadow = true; playerGroup.add(head);
+        const armL = createLimb(0.15, 1.6, -0.45, 3.5); playerGroup.add(armL);
+        const armR = createLimb(0.15, 1.6, 0.45, 3.5); playerGroup.add(armR);
+        const legL = createLimb(0.2, 1.6, -0.2, 1.6); playerGroup.add(legL);
+        const legR = createLimb(0.2, 1.6, 0.2, 1.6); playerGroup.add(legR);
+
+        // --- UPDATED: WIMBLEDON PANAMA HAT WITH PROCEDURAL BAND ---
+        const hatBandTex = createHatBandTexture();
+        const hatBandMat = new THREE.MeshStandardMaterial({ map: hatBandTex, roughness: 0.9 });
+        const equippedHatMat = new THREE.MeshStandardMaterial({ color: 0xe3c58c });
+        const equippedHatGroup = new THREE.Group();
+
+        // Brim
+        const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.1, 32), equippedHatMat);
+        brim.castShadow = true; equippedHatGroup.add(brim);
+
+        // Crown
+        const eHatTop = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.5, 32), equippedHatMat);
+        eHatTop.position.y = 0.3; eHatTop.castShadow = true; equippedHatGroup.add(eHatTop);
+
+        // Striped Hat Band (Wraps tightly around the base of the crown)
+        const eHatBand = new THREE.Mesh(new THREE.CylinderGeometry(0.41, 0.41, 0.15, 32), hatBandMat);
+        eHatBand.position.y = 0.125; // Sits flush exactly above the brim
+        equippedHatGroup.add(eHatBand);
+
+        equippedHatGroup.position.y = 4.5; equippedHatGroup.scale.set(1, 1, 1); playerGroup.add(equippedHatGroup);
+
+        // --- HABBO-STYLE BLOCKY HAZARD GENERATION ---
+        function buildHabboSpectator() {
+            const group = new THREE.Group();
+
+            const skinColors = [0xfcdab7, 0xe0ac69, 0x8d5524, 0xc68642];
+            const shirtColors = [0xff5555, 0x5555ff, 0x55ff55, 0xffaa00, 0xffffff, 0x4a90e2, 0x9955ff];
+            const pantColors = [0x222222, 0x333399, 0x555555, 0x886644, 0x444444];
+            const hairColors = [0x111111, 0x553311, 0xcc8822, 0xaa5522, 0x444444];
+
+            const skinMat = new THREE.MeshStandardMaterial({ color: skinColors[Math.floor(Math.random()*skinColors.length)], roughness: 0.9 });
+            const shirtMat = new THREE.MeshStandardMaterial({ color: shirtColors[Math.floor(Math.random()*shirtColors.length)], roughness: 0.9 });
+            const pantMat = new THREE.MeshStandardMaterial({ color: pantColors[Math.floor(Math.random()*pantColors.length)], roughness: 0.9 });
+            const hairMat = new THREE.MeshStandardMaterial({ color: hairColors[Math.floor(Math.random()*hairColors.length)], roughness: 0.9 });
+
+            function createBlockLimb(w, h, d, x, y, mat, name) {
+                const geo = new THREE.BoxGeometry(w, h, d);
+                geo.translate(0, -h / 2, 0);
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(x, y, 0);
+                mesh.castShadow = true; mesh.name = name; return mesh;
+            }
+
+            const torsoGeo = new THREE.BoxGeometry(0.7, 1.0, 0.4); torsoGeo.translate(0, -0.5, 0);
+            const bTorso = new THREE.Mesh(torsoGeo, shirtMat); bTorso.position.y = 2.4; bTorso.castShadow = true; group.add(bTorso);
+
+            const headGroup = new THREE.Group();
+            const bHead = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), skinMat); bHead.castShadow = true; headGroup.add(bHead);
+            const bHair = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.2, 0.75), hairMat); bHair.position.y = 0.35; bHair.castShadow = true; headGroup.add(bHair);
+            headGroup.position.y = 2.85; group.add(headGroup);
+
+            const bArmL = createBlockLimb(0.25, 0.9, 0.25, -0.475, 2.3, shirtMat, 'armL');
+            const bArmR = createBlockLimb(0.25, 0.9, 0.25, 0.475, 2.3, shirtMat, 'armR');
+            group.add(bArmL, bArmR);
+
+            const bLegL = createBlockLimb(0.32, 1.4, 0.32, -0.18, 1.4, pantMat, 'legL');
+            const bLegR = createBlockLimb(0.32, 1.4, 0.32, 0.18, 1.4, pantMat, 'legR');
+            group.add(bLegL, bLegR);
+
+            return group;
+        }
+
+        // --- GAME LOGIC & STATE ---
+        let score = 0; const maxLives = 2; let lives = 2; let hasHat = true;
+        let multiplierActive = false; let multiplierTimer = 0;
+        let gameActive = true; let gameSpeed = 0.25;
+        const activeItems = []; const clock = new THREE.Clock();
+
+        const scoreVal = document.getElementById('score-val');
+        const livesVal = document.getElementById('lives-val');
+        const scoreHud = document.getElementById('score-hud');
+        const scoreGlow = document.getElementById('score-glow');
+
+        function updateUI() {
+            let heartsHTML = '';
+            for (let i = 0; i < maxLives; i++) {
+                const fillAlpha = i < lives ? '1' : '0.2';
+                heartsHTML += `
+                <svg viewBox="0 0 24 24" style="width: clamp(16px, 2.5vh, 32px); height: clamp(16px, 2.5vh, 32px); opacity: ${fillAlpha}; transition: opacity 0.3s;">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ff2a2a"/>
+                </svg>`;
+            }
+            livesVal.innerHTML = heartsHTML;
+
+            if(multiplierActive) {
+                scoreHud.classList.add('x2-active');
+                scoreGlow.style.background = 'radial-gradient(50% 50% at 50% 50%, rgba(3, 169, 244, 0.7) 0%, rgba(3, 169, 244, 0) 100%)';
+            } else {
+                scoreHud.classList.remove('x2-active');
+                scoreGlow.style.background = 'radial-gradient(50% 50% at 50% 50%, rgba(252, 232, 179, 0.7) 0%, rgba(252, 232, 179, 0) 100%)';
+            }
+        }
+        updateUI();
+
+        window.addEventListener('keydown', (e) => {
+            if(!gameActive) return;
+            if (e.code === 'ArrowLeft' && currentLaneIndex > 0) currentLaneIndex--;
+            if (e.code === 'ArrowRight' && currentLaneIndex < 2) currentLaneIndex++;
+        });
+
+        const tennisMat = new THREE.MeshStandardMaterial({ map: createTennisTexture(), roughness: 0.5 });
+        const glowingTowelMat = new THREE.MeshStandardMaterial({ color: 0x03a9f4, emissive: 0x03a9f4, emissiveIntensity: 0.6 });
+
+        // Spawned glowing hat needs the band texture too
+        const glowingHatMat = new THREE.MeshStandardMaterial({ color: 0xe3c58c, emissive: 0xe3c58c, emissiveIntensity: 0.4 });
+        const glowingHatBandMat = new THREE.MeshStandardMaterial({ map: hatBandTex, roughness: 0.9, emissive: 0xffffff, emissiveIntensity: 0.2 });
+
+        const spawnHatGroup = new THREE.Group();
+        spawnHatGroup.add(new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.1, 32), glowingHatMat));
+        const sHatTop = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.5, 32), glowingHatMat); sHatTop.position.y = 0.3;
+        spawnHatGroup.add(sHatTop);
+        const sHatBand = new THREE.Mesh(new THREE.CylinderGeometry(0.41, 0.41, 0.15, 32), glowingHatBandMat);
+        sHatBand.position.y = 0.125;
+        spawnHatGroup.add(sHatBand);
+
+        function spawnItem() {
+            const rand = Math.random(); const laneSpawnIndex = Math.floor(Math.random() * 3); let mesh, type;
+
+            if (rand > 0.95 && !hasHat) {
+                mesh = spawnHatGroup.clone(); mesh.scale.set(1.2, 1.2, 1.2); mesh.position.y = 1.0;
+                const glow = new THREE.PointLight(0xe3c58c, 1.0, 5); glow.position.y = -0.5; mesh.add(glow); type = 'hat';
+            }
+            else if (rand > 0.85 && !multiplierActive) {
+                mesh = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.2), glowingTowelMat); mesh.position.y = 1.0;
+                const glow = new THREE.PointLight(0x03a9f4, 1.5, 5); glow.position.y = -0.5; mesh.add(glow); type = 'towel';
+            } else if (rand > 0.6) {
+                mesh = buildHabboSpectator();
+                mesh.rotation.y = 0;
+                mesh.userData = { animationPhase: Math.random() * Math.PI * 2, walkSpeed: 0.02 + Math.random() * 0.015 };
+                type = 'hazard';
+            } else {
+                mesh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), tennisMat);
+                mesh.rotation.y = Math.random() * Math.PI; mesh.position.y = 0.5; type = 'ball';
+            }
+
+            mesh.castShadow = true;
+            mesh.position.z = -90; mesh.position.x = lanePositions[laneSpawnIndex];
+            scene.add(mesh); activeItems.push({ mesh, type, active: true });
+        }
+
+        // --- RENDER LOOP ---
+        function animate() {
+            requestAnimationFrame(animate); if (!gameActive) return;
+            const delta = clock.getDelta(); const time = clock.getElapsedTime();
+
+            if (multiplierActive) { multiplierTimer -= delta; if (multiplierTimer <= 0) multiplierActive = false; }
+            updateUI();
+
+            const targetX = lanePositions[currentLaneIndex]; const diff = targetX - playerGroup.position.x;
+            playerGroup.position.x += diff * 0.25; playerGroup.rotation.z = -diff * 0.15;
+
+            const runSpeed = 12;
+            armL.rotation.x = Math.sin(time * runSpeed) * 1.5;
+            armR.rotation.x = -Math.sin(time * runSpeed) * 1.5;
+            legL.rotation.x = -Math.sin(time * runSpeed) * 1.2; legR.rotation.x = Math.sin(time * runSpeed) * 1.2;
+            playerGroup.position.y = Math.abs(Math.sin(time * runSpeed * 2)) * 0.15;
+
+            if (Math.random() < 0.025) spawnItem();
+
+            for (let i = activeItems.length - 1; i >= 0; i--) {
+                const item = activeItems[i]; if (!item.active) continue;
+
+                if (item.type === 'hazard') {
+                    item.mesh.position.z += (gameSpeed + item.mesh.userData.walkSpeed);
+                    const phase = time * 8 + item.mesh.userData.animationPhase;
+                    const bLegL = item.mesh.getObjectByName('legL');
+                    const bLegR = item.mesh.getObjectByName('legR');
+                    const bArmL = item.mesh.getObjectByName('armL');
+                    const bArmR = item.mesh.getObjectByName('armR');
+
+                    if(bLegL) bLegL.rotation.x = Math.sin(phase) * 0.4;
+                    if(bLegR) bLegR.rotation.x = -Math.sin(phase) * 0.4;
+                    if(bArmL) bArmL.rotation.x = -Math.sin(phase) * 0.3;
+                    if(bArmR) bArmR.rotation.x = Math.sin(phase) * 0.3;
+
+                    item.mesh.position.y = Math.abs(Math.sin(phase * 2)) * 0.05;
+                } else {
+                    item.mesh.position.z += gameSpeed;
+                }
+
+                if (item.type === 'hat' || item.type === 'towel') item.mesh.rotation.y += 0.04;
+                if (item.type === 'ball') item.mesh.rotation.x += 0.08;
+
+                const sameLane = Math.abs(playerGroup.position.x - item.mesh.position.x) < 1.0;
+                const closeZ = Math.abs(playerGroup.position.z - item.mesh.position.z) < 1.0;
+
+                if (sameLane && closeZ) {
+                    item.active = false; scene.remove(item.mesh);
+
+                    if (item.type === 'ball') { score += (multiplierActive ? 100 : 50); scoreVal.innerText = score; }
+                    else if (item.type === 'hat') {
+                        hasHat = true;
+                        equippedHatGroup.scale.set(1, 1, 1);
+                        score += 100;
+                    }
+                    else if (item.type === 'towel') { multiplierActive = true; multiplierTimer = 10; score += 100; }
+                    else if (item.type === 'hazard') {
+                        if (hasHat) {
+                            hasHat = false;
+                            equippedHatGroup.scale.set(0, 0, 0);
+                            matBlack.emissive.setHex(0xffffff); setTimeout(() => matBlack.emissive.setHex(0x000000), 100);
+                        }
+                        else {
+                            lives--; updateUI();
+                            matBlack.emissive.setHex(0xff0000); setTimeout(() => matBlack.emissive.setHex(0x000000), 200);
+                            if (lives <= 0) { gameActive = false; document.getElementById('final-score').innerText = score; document.getElementById('game-over-screen').style.display = 'flex'; }
+                        }
+                    }
+                }
+                if (item.mesh.position.z > 10) { scene.remove(item.mesh); activeItems.splice(i, 1); }
+            }
+            if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+                renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+                camera.aspect = canvas.clientWidth / canvas.clientHeight; camera.updateProjectionMatrix();
+            }
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
