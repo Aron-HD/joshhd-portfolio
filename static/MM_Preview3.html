@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Grounds Quest</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; background: #000c24; overflow: hidden; font-family: -apple-system, sans-serif; }
+        #game-container { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        #start-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,12,36,0.93); backdrop-filter: blur(14px);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: #fff; z-index: 10; text-align: center; padding: 20px;
+        }
+        .badge { letter-spacing: 6px; font-size: 0.65rem; text-transform: uppercase; color: #ffd700;
+            font-weight: 700; margin-bottom: 18px; border: 1px solid rgba(255,215,0,0.3);
+            padding: 5px 18px; display: inline-block; }
+        h1 { font-size: clamp(1.6rem, 5vw, 2.8rem); margin: 0 0 10px; letter-spacing: 5px;
+            font-weight: 200; text-transform: uppercase; text-shadow: 0 0 30px rgba(0,212,255,0.5); }
+        p { color: #8ab4f8; font-size: 0.85rem; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 36px; }
+        .btn { padding: 15px 44px; font-size: 0.85rem; background: #006fcf; color: #fff;
+            border: none; border-radius: 3px; cursor: pointer; letter-spacing: 3px;
+            text-transform: uppercase; font-weight: 700; box-shadow: 0 0 24px rgba(0,111,207,0.5);
+            transition: all 0.2s; }
+        .btn:hover { background: #00d4ff; color: #000c24; box-shadow: 0 0 36px rgba(0,212,255,0.8); }
+        #restart-btn { display: none; margin-top: 14px; background: #1a1a2e;
+            border: 1px solid #ffd700; color: #ffd700; }
+        #restart-btn:hover { background: #ffd700; color: #000; }
+        #tilt-btn { display: none; margin-top: 12px; font-size: 0.75rem; padding: 10px 24px;
+            background: transparent; border: 1px solid rgba(138,180,248,0.4); color: #8ab4f8; }
+        .hint { font-size: 0.65rem; color: rgba(138,180,248,0.4); letter-spacing: 2px; margin-top: 22px; }
+    </style>
+</head>
+<body>
+<div id="start-screen">
+    <div class="badge">Wimbledon Experience</div>
+    <h1 id="title">ACCESS ALL AREAS</h1>
+    <p id="sub">A Grounds Quest</p>
+    <button class="btn" id="start-btn">Begin Experience</button>
+    <button class="btn" id="restart-btn">Play Again</button>
+    <button class="btn" id="tilt-btn">Enable Tilt Controls</button>
+    <div class="hint">Arrow keys · Collect all MOMENTS to open the exit</div>
+</div>
+<div id="game-container"></div>
+
+<script>
+window.gameState = { level: 1, totalScore: 0 };
+window.tiltData  = { x: 0, y: 0 };
+
+// ─── Level definitions ───────────────────────────────────────────────────────
+// Tile key: 0=empty, 1=inner wall, 2=pellet, 3=amex touchpoint,
+//           4=exit door, 5=outer wall, 7=white court wall, 8=golden ticket
+const LEVELS = {
+    // Level 1 — The Grounds: two symmetrical court pairs (Wimbledon outer courts)
+    1: {
+        title: 'LEVEL 1 · THE GROUNDS',
+        tileSize: 40, startPos: { r: 4, c: 7 }, timeLimit: 30,
+        grid: [
+            [5,5,5,5,5,5,5,4,5,5,5,5,5,5,5],
+            [5,3,2,2,2,2,2,0,2,2,2,2,2,3,5],
+            [5,2,1,1,1,1,2,2,2,1,1,1,1,2,5],
+            [5,2,1,8,2,1,2,0,2,1,2,8,1,2,5],
+            [5,2,2,2,2,2,2,0,2,2,2,2,2,2,5],
+            [5,2,1,8,2,1,2,0,2,1,2,8,1,2,5],
+            [5,2,1,1,1,1,2,2,2,1,1,1,1,2,5],
+            [5,3,2,2,2,2,2,0,2,2,2,2,2,3,5],
+            [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5]
+        ],
+        clouds: []
+    },
+    // Level 2 — The Championship: inner grounds, Court 1 feel
+    2: {
+        title: 'LEVEL 2 · THE CHAMPIONSHIP',
+        tileSize: 40, startPos: { r: 9, c: 9 }, timeLimit: 90,
+        grid: [
+            [5,5,5,5,5,5,5,5,5,4,5,5,5,5,5,5,5,5,5],
+            [5,3,2,2,2,5,2,2,2,0,2,2,2,5,2,2,2,3,5],
+            [5,2,1,1,2,5,2,1,1,1,1,1,2,5,2,1,1,2,5],
+            [5,2,1,1,2,2,2,2,2,1,2,2,2,2,2,1,1,2,5],
+            [5,2,2,2,2,1,1,1,2,1,2,1,1,1,2,2,2,2,5],
+            [5,1,1,1,2,1,3,2,2,0,2,2,3,1,2,1,1,1,5],
+            [5,8,2,2,2,1,1,1,2,1,2,1,1,1,2,2,2,8,5],
+            [5,2,1,1,2,2,2,2,2,1,2,2,2,2,2,1,1,2,5],
+            [5,3,1,1,2,5,2,1,1,1,1,1,2,5,2,1,1,3,5],
+            [5,2,2,2,2,5,2,2,2,0,2,2,2,5,2,2,2,2,5],
+            [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5]
+        ],
+        clouds: [{ r:4, c:4 }, { r:6, c:14 }]
+    },
+    // Level 3 — Centre Court: the iconic heart of Wimbledon
+    3: {
+        title: 'LEVEL 3 · CENTRE COURT',
+        tileSize: 32, startPos: { r: 13, c: 11 }, timeLimit: 150,
+        grid: [
+            [5,5,5,5,5,5,5,5,5,5,5,4,5,5,5,5,5,5,5,5,5,5,5],
+            [5,3,2,2,2,2,2,2,2,2,2,0,2,2,2,2,2,2,2,2,2,3,5],
+            [5,2,1,1,1,2,1,1,2,1,1,2,1,1,2,1,1,2,1,1,1,2,5],
+            [5,2,1,8,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,8,1,2,5],
+            [5,2,1,2,7,2,7,7,7,7,2,7,2,7,7,7,7,2,7,2,1,2,5],
+            [5,2,2,2,7,2,2,2,2,2,2,2,2,2,2,2,2,2,7,2,2,2,5],
+            [5,1,1,2,7,2,7,7,7,7,2,7,2,7,7,7,7,2,7,2,1,1,5],
+            [5,2,2,2,7,2,7,2,2,2,2,7,2,2,2,2,7,2,7,2,2,2,5],
+            [5,2,1,2,1,2,1,2,1,1,1,2,1,1,1,2,1,2,1,2,1,2,5],
+            [5,2,2,2,7,2,7,2,2,2,2,7,2,2,2,2,7,2,7,2,2,2,5],
+            [5,1,1,2,7,2,7,7,7,7,2,7,2,7,7,7,7,2,7,2,1,1,5],
+            [5,2,2,2,7,2,2,2,2,2,2,2,2,2,2,2,2,2,7,2,2,2,5],
+            [5,2,1,2,7,2,7,7,7,7,2,7,2,7,7,7,7,2,7,2,1,2,5],
+            [5,2,1,8,2,2,2,2,2,2,2,0,2,2,2,2,2,2,2,8,1,2,5],
+            [5,3,1,1,1,2,1,1,2,1,1,2,1,1,2,1,1,2,1,1,1,3,5],
+            [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5]
+        ],
+        clouds: [{ r:3,c:5 }, { r:3,c:17 }, { r:11,c:5 }, { r:11,c:17 }]
+    }
+};
+
+// ─── Scene ───────────────────────────────────────────────────────────────────
+class MainGame extends Phaser.Scene {
+    constructor() { super('MainGame'); }
+
+    init(data) {
+        const d = data || {};
+        this.level = parseInt(d.level, 10) || 1;
+        this.score = parseInt(d.score, 10) || window.gameState.totalScore || 0;
+    }
+
+    // ── Textures (generated once, cached) ────────────────────────────────────
+    generateMaterials() {
+        if (this.textures.exists('playerTex')) return;
+
+        const makeSphere = (key, size, colors, hasSeam = false) => {
+            const cv = document.createElement('canvas');
+            cv.width = cv.height = size;
+            const ctx = cv.getContext('2d'), r = size / 2;
+            const g = ctx.createRadialGradient(r*0.6, r*0.4, r*0.05, r, r, r);
+            g.addColorStop(0, colors[0]); g.addColorStop(0.4, colors[1]); g.addColorStop(1, colors[2]);
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(r, r, r, 0, Math.PI*2); ctx.fill();
+            if (hasSeam) {
+                ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.arc(r-r*0.6, r, r*0.7, -Math.PI/2.5, Math.PI/2.5); ctx.stroke();
+                ctx.beginPath(); ctx.arc(r+r*0.6, r, r*0.7, Math.PI/2.5, -Math.PI/2.5, false); ctx.stroke();
+            }
+            this.textures.addCanvas(key, cv);
+        };
+
+        makeSphere('playerTex', 24, ['#ffffff','#99cc00','#334d00'], true);
+        makeSphere('amexTex',   24, ['#ffffff','#0055ff','#001a4d']);
+        makeSphere('pelletTex', 10, ['#ffffff','#aaddff','#0044cc']);
+
+        // ── Golden Ticket — AMEX Centurion · Retro-Futuristic Luxury ─────────
+        const tw = 48, th = 30, nr = 5;
+        const tc = document.createElement('canvas');
+        tc.width = tw; tc.height = th;
+        const tx = tc.getContext('2d');
+
+        // Ticket path helper (half-moon notches cut into left & right edges)
+        const ticketPath = () => {
+            tx.beginPath();
+            tx.moveTo(0, 0);
+            tx.lineTo(tw, 0);
+            tx.lineTo(tw, th/2 - nr);
+            tx.arc(tw, th/2, nr, -Math.PI/2, Math.PI/2, true);  // right notch
+            tx.lineTo(tw, th);
+            tx.lineTo(0, th);
+            tx.lineTo(0, th/2 + nr);
+            tx.arc(0, th/2, nr, Math.PI/2, -Math.PI/2, true);   // left notch
+            tx.closePath();
+        };
+
+        // 1. Clip everything to ticket shape
+        tx.save();
+        ticketPath();
+        tx.clip();
+
+        // 2. Deep velvet background
+        tx.fillStyle = '#FFD700';
+        tx.fillRect(0, 0, tw, th);
+
+        // 3. Horizontal scan-line texture
+        tx.strokeStyle = 'rgba(255,215,0,0.055)';
+        tx.lineWidth = 0.5;
+        for (let sy = 1; sy < th; sy += 2) {
+            tx.beginPath(); tx.moveTo(0, sy); tx.lineTo(tw, sy); tx.stroke();
+        }
+
+        // 4. Holographic iridescent band across center
+        const holo = tx.createLinearGradient(0, th*0.38, tw, th*0.62);
+        holo.addColorStop(0,    'rgba(255,80,80,0.14)');
+        holo.addColorStop(0.25, 'rgba(255,215,0,0.18)');
+        holo.addColorStop(0.5,  'rgba(0,240,200,0.18)');
+        holo.addColorStop(0.75, 'rgba(80,100,255,0.14)');
+        holo.addColorStop(1,    'rgba(220,60,220,0.14)');
+        tx.fillStyle = holo;
+        tx.fillRect(0, th*0.38, tw, th*0.24);
+
+        // 5. Art-deco inner border
+        tx.strokeStyle = 'rgba(255,215,0,1.0)';
+        tx.lineWidth = 0.5;
+        tx.strokeRect(4, 3, tw-8, th-6);
+
+        // 6. ── CENTURION HELMET (AMEX emblem) ──────────────────────────────
+        const hx = tw/2, hy = th/2 - 1;
+        tx.fillStyle = 'rgba(255,215,0,0.92)';
+        tx.shadowColor = '#ffd700';
+        tx.shadowBlur = 4;
+
+        // Plume — swept back feather crest
+        tx.beginPath();
+        tx.moveTo(hx-4, hy-5);
+        tx.quadraticCurveTo(hx-2, hy-13, hx+1, hy-14);
+        tx.quadraticCurveTo(hx+5, hy-12, hx+4, hy-5);
+        tx.closePath();
+        tx.fill();
+
+        // Helmet dome (brim-forward Roman style)
+        tx.beginPath();
+        tx.ellipse(hx, hy-1, 7.5, 6, 0, Math.PI, 0, true);
+        tx.lineTo(hx+9, hy+5);
+        tx.quadraticCurveTo(hx+8, hy+7, hx+5, hy+7);
+        tx.lineTo(hx-5, hy+7);
+        tx.quadraticCurveTo(hx-8, hy+7, hx-9, hy+5);
+        tx.closePath();
+        tx.fill();
+
+        // Cheek guards
+        tx.fillRect(hx-9.5, hy+2, 2.5, 5.5);
+        tx.fillRect(hx+7,   hy+2, 2.5, 5.5);
+
+        // Visor slit (dark cut into helmet)
+        tx.shadowBlur = 0;
+        tx.fillStyle = '#020a18';
+        tx.fillRect(hx-7, hy+1.5, 14, 2.5);
+
+        // Nose guard (small vertical bar)
+        tx.fillStyle = 'rgba(255,215,0,0.92)';
+        tx.fillRect(hx-0.8, hy+1, 1.6, 7.5);
+
+        tx.restore(); // end clip
+
+        // 7. Neon gold border — full brightness to match wall intensity
+        ticketPath();
+        tx.shadowColor = '#ffd700';
+        tx.shadowBlur = 8;
+        const goldGrd = tx.createLinearGradient(0, 0, tw, th);
+        goldGrd.addColorStop(0,   '#6a4000');
+        goldGrd.addColorStop(0.3, '#ffd700');
+        goldGrd.addColorStop(0.5, '#fff8c0');
+        goldGrd.addColorStop(0.7, '#ffd700');
+        goldGrd.addColorStop(1,   '#6a4000');
+        tx.strokeStyle = goldGrd;
+        tx.lineWidth = 1.8;
+        tx.stroke();
+        tx.shadowBlur = 0;
+
+        this.textures.addCanvas('ticketTex', tc);
+
+        // Shadow blob
+        const sc = document.createElement('canvas');
+        sc.width = sc.height = 32;
+        const sx = sc.getContext('2d');
+        const sg = sx.createRadialGradient(16,16,0,16,16,16);
+        sg.addColorStop(0, 'rgba(0,0,0,0.7)');
+        sg.addColorStop(1, 'rgba(0,0,0,0)');
+        sx.fillStyle = sg; sx.fillRect(0,0,32,32);
+        this.textures.addCanvas('softShadow', sc);
+
+        // Cloud — FIX: each circle drawn as separate path to avoid dark winding-rule artefacts
+        const cc = document.createElement('canvas');
+        cc.width = 54; cc.height = 34;
+        const cx2 = cc.getContext('2d');
+        cx2.fillStyle = '#ddeeff';
+        [[27,24,11],[16,24,9],[38,24,9],[21,14,9],[33,14,9]].forEach(([x,y,r]) => {
+            cx2.beginPath();
+            cx2.arc(x, y, r, 0, Math.PI*2);
+            cx2.fill();
+        });
+        this.textures.addCanvas('cloudTex', cc);
+
+        // Beam of light for portal
+        const bc = document.createElement('canvas');
+        bc.width = 120; bc.height = 150;
+        const bx = bc.getContext('2d');
+        const bg2 = bx.createLinearGradient(0,0,0,150);
+        bg2.addColorStop(0,'rgba(255,255,255,1)');
+        bg2.addColorStop(1,'rgba(255,255,255,0)');
+        bx.fillStyle = bg2;
+        bx.beginPath(); bx.moveTo(40,0); bx.lineTo(80,0); bx.lineTo(120,150); bx.lineTo(0,150); bx.fill();
+        this.textures.addCanvas('beamTex', bc);
+    }
+
+    // ── create ────────────────────────────────────────────────────────────────
+    create() {
+        this.matter.world.removeAllListeners('collisionstart');
+
+        this.isTransitioning = false;
+        this.touchpoints     = 0;
+        this.gameOver        = false;
+        this.portalOpen      = false;
+        this.slowTimerMs     = 0;
+        this.powerTimerMs    = 0;
+        this.immunityTimerMs = 1200;
+        this.combo           = 1;
+        this.comboTimer      = 0;
+
+        const current  = LEVELS[this.level];
+        this.timeLeft  = current.timeLimit;
+
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.matter.world.setBounds(0, 0, 800, 600, 64, true, true, true, true);
+        this.generateMaterials();
+
+        this.tSize   = current.tileSize;
+        this.offsetX = (800 - current.grid[0].length * this.tSize) / 2;
+        this.offsetY = (600 - current.grid.length    * this.tSize) / 2;
+        current.target = current.grid.flat().filter(t => t === 3).length;
+
+        this.buildBackground(current);
+        this.buildLevel(current);
+        this.buildPlayer(current);
+        this.createHUD(current);
+        this.createTouchControls();
+        this.setupCollisions(current);
+
+        this.time.addEvent({
+            delay: 1000, loop: true,
+            callback: () => {
+                if (this.gameOver) return;
+                this.timeLeft--;
+                this.timerText.setText(this.timeLeft);
+                this.timerText.setColor(this.timeLeft <= 15 ? '#ff4444' : '#ffffff');
+                if (this.timeLeft <= 0) {
+                    this.scene.restart({ level: this.level, score: window.gameState.totalScore });
+                }
+            }
+        });
+    }
+
+    buildBackground(current) {
+        const g = this.add.graphics().setDepth(0);
+        g.lineStyle(1, 0x00d4ff, 0.07);
+        for (let x = 0; x <= 800; x += this.tSize) { g.moveTo(x,0); g.lineTo(x,600); }
+        for (let y = 0; y <= 600; y += this.tSize) { g.moveTo(0,y); g.lineTo(800,y); }
+        g.strokePath();
+
+        // Centre Court overlay lines
+        if (this.level === 3) {
+            const cx = this.offsetX + 11.5 * this.tSize;
+            const cy = this.offsetY + 8.5  * this.tSize;
+            const cg = this.add.graphics().setDepth(1);
+            cg.lineStyle(2, 0xffffff, 0.4);
+            const cw = this.tSize * 10, ch = this.tSize * 5.5;
+            cg.strokeRect(cx-cw/2, cy-ch/2, cw, ch);
+            cg.strokeRect(cx-cw/2, cy-ch/2+15, cw, ch-30);
+            cg.lineBetween(cx-cw/4, cy, cx+cw/4, cy);
+            cg.lineBetween(cx-cw/4, cy-ch/2+15, cx-cw/4, cy+ch/2-15);
+            cg.lineBetween(cx+cw/4, cy-ch/2+15, cx+cw/4, cy+ch/2-15);
+        }
+    }
+
+    buildLevel(current) {
+        const wallGlow = this.add.graphics().setDepth(9);
+        const wallCore = this.add.graphics().setDepth(10);
+        wallGlow.postFX.addBloom(0x00d4ff, 1, 1, 2, 1.5);
+
+        this.activeItems = [];
+
+        this.beamLight = this.add.image(400, this.offsetY + this.tSize/2, 'beamTex')
+            .setOrigin(0.5, 0).setDepth(14).setBlendMode('ADD').setAlpha(0);
+
+        for (let row = 0; row < current.grid.length; row++) {
+            for (let col = 0; col < current.grid[row].length; col++) {
+                const tile = current.grid[row][col];
+                const cx   = this.offsetX + col * this.tSize + this.tSize/2;
+                const cy   = this.offsetY + row * this.tSize + this.tSize/2;
+
+                // Solid wall tiles
+                if ([1, 5, 7].includes(tile)) {
+                    this.matter.add.rectangle(cx, cy, this.tSize+8, this.tSize+8,
+                        { isStatic:true, friction:0, frictionStatic:0 });
+
+                    const isOuter = tile === 5, isWhite = tile === 7;
+                    const t = isOuter ? 10 : 4;
+                    const coreCol = isWhite ? 0xffffff : 0x00d4ff;
+                    const glowCol = isWhite ? 0xffffff : 0x004499;
+
+                    wallCore.lineStyle(t,       coreCol, 1);
+                    wallGlow.lineStyle(t * 2.5, glowCol, 1);
+
+                    const isWall = (r, c) => {
+                        if (r < 0 || r >= current.grid.length || c < 0 || c >= current.grid[0].length) return false;
+                        return [1, 5, 7].includes(current.grid[r][c]);
+                    };
+
+                    if (isWall(row, col+1)) {
+                        wallGlow.lineBetween(cx, cy, cx+this.tSize, cy);
+                        wallCore.lineBetween(cx, cy, cx+this.tSize, cy);
+                    }
+                    if (isWall(row+1, col)) {
+                        wallGlow.lineBetween(cx, cy, cx, cy+this.tSize);
+                        wallCore.lineBetween(cx, cy, cx, cy+this.tSize);
+                    }
+
+                    wallGlow.fillStyle(glowCol, 1);
+                    wallGlow.fillCircle(cx, cy, (t*2.5)/2);
+                    wallCore.fillStyle(coreCol, 1);
+                    wallCore.fillCircle(cx, cy, t/2);
+                }
+
+                // Exit door
+                if (tile === 4) {
+                    this.doorLeft  = this.add.rectangle(cx-this.tSize/4, cy, this.tSize/2, 8, 0xffffff).setDepth(15);
+                    this.doorRight = this.add.rectangle(cx+this.tSize/4, cy, this.tSize/2, 8, 0xffffff).setDepth(15);
+                    this.doorLeft.postFX.addBloom(0xffffff, 1, 1, 2, 1.5);
+                    this.doorRight.postFX.addBloom(0xffffff, 1, 1, 2, 1.5);
+                    this.doorLeftBody  = this.matter.add.gameObject(this.doorLeft,  { isStatic:true, label:'door_blocker' });
+                    this.doorRightBody = this.matter.add.gameObject(this.doorRight, { isStatic:true, label:'door_blocker' });
+
+                    const exitZone = this.add.rectangle(cx, cy, this.tSize, this.tSize*1.5, 0,0);
+                    this.matter.add.gameObject(exitZone, { isStatic:true, isSensor:true, label:'exit' });
+                    this.matter.add.rectangle(cx, cy-this.tSize, this.tSize*2, this.tSize, { isStatic:true });
+                }
+
+                // Collectibles: pellet (2), amex touchpoint (3), ticket (8)
+                if ([2, 3, 8].includes(tile)) {
+                    const isAmex   = tile === 3;
+                    const isTicket = tile === 8;
+
+                    // Aura — alpha tween only (no per-object postFX for performance)
+                    const auraCol = isTicket ? 0xffd700 : (isAmex ? 0x4488ff : 0xaaccff);
+                    const auraR   = isAmex ? 14 : (isTicket ? 14 : 6);
+                    const aura    = this.add.circle(cx, cy, auraR, auraCol, 0.4).setDepth(11);
+                    this.tweens.add({ targets:aura, alpha:0.06, yoyo:true, repeat:-1,
+                        duration: isTicket ? 600 : 1000 });
+
+                    const sxs = isAmex||isTicket ? 1.2 : 0.5;
+                    const sys = isAmex||isTicket ? 0.6 : 0.25;
+                    const shadow = this.add.image(cx, cy+(isAmex||isTicket?6:4), 'softShadow')
+                        .setDepth(5).setScale(sxs, sys);
+
+                    const texKey = isAmex ? 'amexTex' : (isTicket ? 'ticketTex' : 'pelletTex');
+                    const obj    = this.add.image(cx, cy, texKey).setDepth(12);
+
+                    // Ticket: scale to fit neatly within tile, strong neon gold bloom
+                    if (isTicket) {
+                        const ts = this.tSize < 36 ? 0.58 : 0.72;
+                        obj.setScale(ts);
+                        obj.postFX.addBloom(0xffd700, 1, 1, 2, 2.5);
+                    }
+                    // Amex: bloom on sphere
+                    if (isAmex) obj.postFX.addBloom(0x0066ff, 1, 1, 2, 1.5);
+
+                    // Pellet scale for dense Level 3
+                    if (this.level === 3 && !isAmex && !isTicket) obj.setScale(0.8);
+
+                    // Shimmer tween — cycles through warm gold → bright champagne
+                    if (isTicket) {
+                        this.tweens.addCounter({
+                            from:0, to:100, duration:1600, yoyo:true, repeat:-1,
+                            onUpdate: (tw) => {
+                                const v = tw.getValue()/100;
+                                const r = Math.floor(Phaser.Math.Linear(0xb0, 0xff, v));
+                                const g2= Math.floor(Phaser.Math.Linear(0x70, 0xee, v));
+                                const b = Math.floor(Phaser.Math.Linear(0x00, 0x28, v));
+                                obj.setTint(Phaser.Display.Color.GetColor(r, g2, b));
+                            }
+                        });
+                    }
+
+                    if (isAmex || isTicket) {
+                        this.tweens.add({ targets:obj,    y:'-=5', yoyo:true, repeat:-1, duration:1500, ease:'Sine.easeInOut' });
+                        this.tweens.add({ targets:shadow, scaleX:sxs*0.7, scaleY:sys*0.7, alpha:0.6, yoyo:true, repeat:-1, duration:1500, ease:'Sine.easeInOut' });
+                        this.activeItems.push(obj);
+                    }
+
+                    const label = isAmex ? 'touch' : (isTicket ? 'ticket' : 'ball');
+                    this.matter.add.gameObject(obj, { isStatic:true, isSensor:true, label });
+                    obj.shadowRef = shadow;
+                    obj.auraRef   = aura;
+                }
+            }
+        }
+
+        // Cloud hazards
+        this.clouds = [];
+        current.clouds.forEach(pos => {
+            const px = this.offsetX + pos.c * this.tSize + this.tSize/2;
+            const py = this.offsetY + pos.r * this.tSize + this.tSize/2;
+
+            const cloud = this.add.image(px, py, 'cloudTex').setDepth(20);
+            cloud.logicalX = px;  cloud.logicalY = py;
+            cloud.homeX    = px;  cloud.homeY    = py;
+            cloud.bobTime  = Math.random() * 10;
+            cloud.activeState = true;
+            cloud.retreating  = false;
+
+            // Per-cloud patrol zone (fix: was using global bounds for all clouds)
+            const halfW = current.grid[0].length / 2;
+            const halfH = current.grid.length   / 2;
+            cloud.minX = pos.c < halfW ? this.offsetX + this.tSize         : 400;
+            cloud.maxX = pos.c < halfW ? 400                               : 800 - this.offsetX - this.tSize;
+            cloud.minY = pos.r < halfH ? this.offsetY + this.tSize         : 300;
+            cloud.maxY = pos.r < halfH ? 300                               : 600 - this.offsetY - this.tSize;
+
+            const rain = this.add.particles(0, 0, 'pelletTex', {
+                y:{min:0,max:16}, x:{min:-16,max:16},
+                lifespan:500, speedY:{min:80,max:120},
+                scaleX:0.1, scaleY:0.2, tint:0xaaddff, alpha:0.7, frequency:300
+            }).setDepth(19);
+            rain.startFollow(cloud);
+            cloud.emitter = rain;
+            this.clouds.push(cloud);
+        });
+    }
+
+    buildPlayer(current) {
+        const pX = this.offsetX + current.startPos.c * this.tSize + this.tSize/2;
+        const pY = this.offsetY + current.startPos.r * this.tSize + this.tSize/2;
+        this.playerShadow = this.add.image(pX, pY+8, 'softShadow').setDepth(5).setScale(1.2,0.6);
+        this.player       = this.add.image(pX, pY, 'playerTex').setDepth(15);
+        this.matter.add.gameObject(this.player, { shape:'circle', frictionAir:0.05, friction:0, restitution:0.5, mass:2, label:'player' });
+    }
+
+    // ── HUD — minimal: just SCORE and TIME ────────────────────────────────────
+    createHUD(current) {
+        const lbl = { fontSize:'12px', fill:'#8ab4f8', fontFamily:'-apple-system,sans-serif', fontStyle:'600', letterSpacing:'2px' };
+        const val = { fontSize:'22px', fill:'#ffffff', fontFamily:'-apple-system,sans-serif', fontStyle:'300' };
+
+        this.add.text(400, 18, current.title, {
+            fontSize:'15px', fill:'#00d4ff', fontFamily:'-apple-system,sans-serif',
+            fontStyle:'700', letterSpacing:'3px'
+        }).setOrigin(0.5, 0).setDepth(50);
+
+        this.add.text(20, 18, 'SCORE', lbl).setDepth(50);
+        this.scoreText = this.add.text(20, 36, `${this.score}`, val).setDepth(50);
+
+        this.add.text(780, 18, 'TIME', lbl).setOrigin(1, 0).setDepth(50);
+        this.timerText = this.add.text(780, 36, `${this.timeLeft}`, val).setOrigin(1, 0).setDepth(50);
+
+        this.msg = this.add.text(400, 300, '', {
+            fontSize:'30px', fill:'#fff', fontStyle:'900',
+            shadow:{ offsetX:0, offsetY:3, color:'#000', blur:8, fill:true }
+        }).setOrigin(0.5).setDepth(60);
+    }
+
+    createTouchControls() {
+        this.touchKeys = { left:false, right:false, up:false, down:false };
+        if (!this.sys.game.device.input.touch) return;
+        this.input.addPointer(3);
+        const dirs = [
+            { key:'up',    x:680, y:535, label:'▲' },
+            { key:'left',  x:636, y:568, label:'◄' },
+            { key:'down',  x:680, y:568, label:'▼' },
+            { key:'right', x:724, y:568, label:'►' }
+        ];
+        dirs.forEach(d => {
+            const btn = this.add.circle(d.x, d.y, 22, 0x006fcf, 0.4).setDepth(100).setInteractive();
+            this.add.text(d.x, d.y, d.label, { fontSize:'16px', fill:'rgba(255,255,255,0.75)' }).setOrigin(0.5).setDepth(101);
+            btn.on('pointerdown',   () => this.touchKeys[d.key] = true);
+            btn.on('pointerup',     () => this.touchKeys[d.key] = false);
+            btn.on('pointerout',    () => this.touchKeys[d.key] = false);
+            btn.on('pointercancel', () => this.touchKeys[d.key] = false);
+        });
+    }
+
+    // Floating score popup at collection point
+    showFloatingScore(x, y, amount, color) {
+        const big = amount >= 100;
+        const txt = this.add.text(x, y, `+${amount}`, {
+            fontSize: big ? '22px' : '14px',
+            fill: color || '#ffffff',
+            fontFamily: '-apple-system,sans-serif',
+            fontStyle: '900',
+            shadow:{ offsetX:0, offsetY:2, color:'#000', blur:5, fill:true }
+        }).setOrigin(0.5).setDepth(70);
+        this.tweens.add({ targets:txt, y:y-48, alpha:0, duration:900, ease:'Power2',
+            onComplete:()=>txt.destroy() });
+    }
+
+    setupCollisions(current) {
+        this.matter.world.on('collisionstart', (e) => {
+            e.pairs.forEach(p => {
+                const obj = p.bodyA.label === 'player' ? p.bodyB : p.bodyA;
+                if (!obj.gameObject || !obj.gameObject.active) return;
+
+                if (['ball','touch','ticket'].includes(obj.label)) {
+                    this.slowTimerMs = 0;
+                    this.player.clearTint();
+
+                    const gx = obj.gameObject.x, gy = obj.gameObject.y;
+                    obj.gameObject.setActive(false).setVisible(false).setPosition(-2000,-2000);
+                    if (obj.gameObject.shadowRef) obj.gameObject.shadowRef.setVisible(false);
+                    if (obj.gameObject.auraRef)   obj.gameObject.auraRef.setVisible(false);
+
+                    if (obj.label === 'ball') {
+                        this.comboTimer = 2500;
+                        const earned = 10 * this.combo;
+                        this.score  += earned;
+                        this.combo   = Math.min(this.combo + 1, 5);
+                        const col = this.combo >= 3 ? '#ffd700' : '#aaddff';
+                        const label = this.combo > 1 ? `+${earned} ×${this.combo-1}` : `+${earned}`;
+                        this.showFloatingScore(gx, gy, label, col);
+
+                    } else if (obj.label === 'ticket') {
+                        this.score += 500;
+                        this.combo  = Math.min(this.combo + 2, 5);
+                        this.comboTimer = 3500;
+                        this.showFloatingScore(gx, gy, 500, '#ffd700');
+                        const flash = this.add.rectangle(400,300,800,600,0xffd700,0.12).setDepth(80);
+                        this.tweens.add({ targets:flash, alpha:0, duration:700, onComplete:()=>flash.destroy() });
+
+                    } else if (obj.label === 'touch') {
+                        this.score       += 100;
+                        this.touchpoints++;
+                        this.powerTimerMs = 7000;
+                        this.showFloatingScore(gx, gy, 100, '#00d4ff');
+
+                        this.clouds.forEach(c => {
+                            c.retreating = false;
+                            if (c.flashTween) { c.flashTween.stop(); c.flashTween.remove(); }
+                            c.setTint(0x0055ff);
+                            c.flashTween = this.tweens.addCounter({
+                                from:0, to:100, duration:250, yoyo:true, repeat:-1,
+                                onUpdate:(tw)=>{ c.setTint(tw.getValue()>50 ? 0xffffff : 0x0055ff); }
+                            });
+                        });
+
+                        if (this.touchpoints >= current.target) this.openPortal();
+                    }
+
+                    this.scoreText.setText(`${this.score}`);
+
+                } else if (obj.label === 'exit' && this.portalOpen) {
+                    this.nextLevel();
+                }
+            });
+        });
+    }
+
+    openPortal() {
+        this.portalOpen = true;
+        this.msg.setText('EXIT OPEN');
+        this.doorLeftBody.body.isSensor  = true;
+        this.doorRightBody.body.isSensor = true;
+        this.tweens.add({ targets:this.doorLeft,  x:`-=${this.tSize/1.5}`, alpha:0, duration:1500, ease:'Power2' });
+        this.tweens.add({ targets:this.doorRight, x:`+=${this.tSize/1.5}`, alpha:0, duration:1500, ease:'Power2' });
+        this.tweens.add({ targets:this.beamLight, alpha:0.8, duration:1500, ease:'Sine.easeInOut' });
+    }
+
+    nextLevel() {
+        if (this.isTransitioning) return;
+        this.isTransitioning = true;
+        this.gameOver = true;
+        window.gameState.totalScore = this.score;
+
+        if (this.level < 3) {
+            this.msg.setText('LEVEL COMPLETE');
+            this.time.delayedCall(1500, () => {
+                this.scene.restart({ level:this.level+1, score:this.score });
+            });
+        } else {
+            this.msg.setText(`GRAND SLAM CHAMPION\nFINAL SCORE: ${this.score}`);
+            document.getElementById('restart-btn').style.display = 'block';
+            document.getElementById('start-screen').style.display = 'flex';
+            document.getElementById('title').innerText = 'CHAMPIONSHIP WON';
+            document.getElementById('sub').innerText   = `HIGH SCORE: ${this.score}`;
+            document.getElementById('start-btn').style.display = 'none';
+        }
+    }
+
+    // ── Cloud hit — dramatic effect (camera shake + electric flash + player blink) ──
+    triggerCloudHit(cloud) {
+        this.slowTimerMs     = 3000;
+        this.immunityTimerMs = 800;
+        cloud.retreating     = true;
+
+        // Camera shake
+        this.cameras.main.shake(320, 0.013);
+
+        // Purple electric flash across screen
+        const flash = this.add.rectangle(400,300,800,600,0x5500aa,0.48).setDepth(85);
+        this.tweens.add({ targets:flash, alpha:0, duration:380, ease:'Power2',
+            onComplete:()=>flash.destroy() });
+
+        // Lightning arcs (2 random lines from cloud position)
+        const lg = this.add.graphics().setDepth(86).setBlendMode('ADD');
+        lg.lineStyle(2, 0xcc88ff, 0.9);
+        for (let i = 0; i < 3; i++) {
+            const x1 = cloud.x + Phaser.Math.Between(-15,15);
+            const y1 = cloud.y + Phaser.Math.Between(-8,8);
+            const x2 = this.player.x + Phaser.Math.Between(-20,20);
+            const y2 = this.player.y + Phaser.Math.Between(-20,20);
+            lg.lineBetween(x1,y1, x2,y2);
+        }
+        this.tweens.add({ targets:lg, alpha:0, duration:300, onComplete:()=>lg.destroy() });
+
+        // Player blink
+        this.tweens.add({
+            targets:this.player, alpha:0.15, yoyo:true, repeat:6, duration:70,
+            onComplete:()=>this.player.setAlpha(1)
+        });
+
+        // "SLOWED!" text
+        const st = this.add.text(this.player.x, this.player.y-24, 'SLOWED!', {
+            fontSize:'16px', fill:'#aaddff', fontStyle:'900',
+            fontFamily:'-apple-system,sans-serif',
+            shadow:{ offsetX:0, offsetY:2, color:'#001133', blur:6, fill:true }
+        }).setOrigin(0.5).setDepth(70);
+        this.tweens.add({ targets:st, y:st.y-30, alpha:0, duration:800,
+            onComplete:()=>st.destroy() });
+    }
+
+    update(time, delta) {
+        if (this.gameOver) return;
+
+        const dt = delta / 16.666;
+
+        if (this.immunityTimerMs > 0) this.immunityTimerMs -= delta;
+
+        // Combo timeout
+        if (this.comboTimer > 0) {
+            this.comboTimer -= delta;
+            if (this.comboTimer <= 0) this.combo = 1;
+        }
+
+        const pMinX = this.offsetX + this.tSize + 16;
+        const pMaxX = 800 - this.offsetX - this.tSize - 16;
+        const pMinY = this.offsetY + this.tSize + 16;
+        const pMaxY = 600 - this.offsetY - this.tSize - 16;
+
+        // Power mode countdown (cloud vulnerability window)
+        if (this.powerTimerMs > 0) {
+            this.powerTimerMs -= delta;
+            if (this.powerTimerMs <= 0) {
+                this.clouds.forEach(c => {
+                    if (c.flashTween) { c.flashTween.stop(); c.flashTween.remove(); }
+                    c.clearTint();
+                    if (!c.activeState) {
+                        c.activeState = true; c.setVisible(true);
+                        c.logicalX = c.homeX; c.logicalY = c.homeY;
+                        c.emitter.start();
+                    }
+                });
+            }
+        }
+
+        // Cloud AI
+        this.player.clearTint();
+        this.clouds.forEach(c => {
+            if (!c.activeState) return;
+
+            c.bobTime += 0.1 * dt;
+            const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, c.logicalX, c.logicalY);
+            let angle = 0, speedMult = 0;
+
+            if (this.powerTimerMs > 0) {
+                if (dist < 30) {
+                    c.activeState = false; c.setVisible(false); c.emitter.stop();
+                    this.score += 200; this.scoreText.setText(`${this.score}`);
+                    this.showFloatingScore(c.logicalX, c.logicalY, 200, '#ff9900');
+                    return;
+                }
+                angle     = Phaser.Math.Angle.Between(this.player.x, this.player.y, c.logicalX, c.logicalY);
+                speedMult = 1.1;
+            } else if (c.retreating) {
+                const dHome = Phaser.Math.Distance.Between(c.logicalX, c.logicalY, c.homeX, c.homeY);
+                if (dHome < 5) { c.retreating = false; }
+                else {
+                    angle     = Phaser.Math.Angle.Between(c.logicalX, c.logicalY, c.homeX, c.homeY);
+                    speedMult = 1.5;
+                }
+            } else {
+                if (dist < 26 && this.immunityTimerMs <= 0) {
+                    this.triggerCloudHit(c);
+                } else if (dist < 200) {
+                    angle     = Phaser.Math.Angle.Between(c.logicalX, c.logicalY, this.player.x, this.player.y);
+                    speedMult = 0.85;
+                } else {
+                    angle     = Phaser.Math.Angle.Between(c.logicalX, c.logicalY, c.homeX, c.homeY);
+                    speedMult = 0.35;
+                }
+            }
+
+            c.logicalX += Math.cos(angle) * speedMult * dt;
+            c.logicalY += Math.sin(angle) * speedMult * dt;
+            // Use per-cloud bounds
+            c.logicalX = Phaser.Math.Clamp(c.logicalX, c.minX, c.maxX);
+            c.logicalY = Phaser.Math.Clamp(c.logicalY, c.minY, c.maxY);
+            c.x = c.logicalX;
+            c.y = c.logicalY + Math.sin(c.bobTime) * 5;
+        });
+
+        // Speed — halved when slowed
+        let speed = 0.005;
+        if (this.slowTimerMs > 0) {
+            this.slowTimerMs -= delta;
+            speed = 0.005 * 0.15;
+            this.player.setTint(0x88ccff);
+        }
+
+        // Input: keyboard + touch d-pad + tilt
+        const L = this.cursors.left.isDown  || this.touchKeys.left;
+        const R = this.cursors.right.isDown || this.touchKeys.right;
+        const U = this.cursors.up.isDown    || this.touchKeys.up;
+        const D = this.cursors.down.isDown  || this.touchKeys.down;
+
+        if (L) this.player.applyForce({ x:-speed, y:0 });
+        if (R) this.player.applyForce({ x:speed,  y:0 });
+        if (U) this.player.applyForce({ x:0, y:-speed });
+        if (D) this.player.applyForce({ x:0, y:speed  });
+
+        if (window.tiltData && (Math.abs(window.tiltData.x) > 2 || Math.abs(window.tiltData.y) > 2)) {
+            this.player.applyForce({
+                x:(window.tiltData.x/90) * speed * 2,
+                y:(window.tiltData.y/90) * speed * 2
+            });
+        }
+
+        const maxV = 8;
+        this.player.setVelocityX(Phaser.Math.Clamp(this.player.body.velocity.x, -maxV, maxV));
+        this.player.setVelocityY(Phaser.Math.Clamp(this.player.body.velocity.y, -maxV, maxV));
+
+        if (this.player.y>600 || this.player.y<0 || this.player.x>800 || this.player.x<0) {
+            this.scene.restart({ level:this.level, score:window.gameState.totalScore });
+        }
+
+        const vx = this.player.body.velocity.x, vy = this.player.body.velocity.y;
+        this.player.rotation += (vx + vy) * 0.1;
+        this.playerShadow.x = this.player.x;
+        this.playerShadow.y = this.player.y + 10;
+
+        this.activeItems.forEach(item => { if (item.active) item.rotation += 0.015 * dt; });
+    }
+}
+
+// ─── Phaser config ────────────────────────────────────────────────────────────
+const config = {
+    type: Phaser.WEBGL,
+    scale: { mode:Phaser.Scale.FIT, autoCenter:Phaser.Scale.CENTER_BOTH, width:800, height:600 },
+    parent: 'game-container',
+    backgroundColor: '#000c24',
+    physics: { default:'matter', matter:{ gravity:{y:0}, debug:false } },
+    scene: MainGame
+};
+
+let gameInstance;
+
+document.getElementById('start-btn').addEventListener('click', () => {
+    document.getElementById('start-screen').style.display = 'none';
+    if (!gameInstance) gameInstance = new Phaser.Game(config);
+});
+
+document.getElementById('restart-btn').addEventListener('click', () => {
+    document.getElementById('start-screen').style.display = 'none';
+    window.gameState.level = 1; window.gameState.totalScore = 0;
+    gameInstance.scene.keys.MainGame.scene.restart({ level:1, score:0 });
+});
+
+// ─── Device orientation — iOS requires explicit user gesture ─────────────────
+if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    const tb = document.getElementById('tilt-btn');
+    tb.style.display = 'block';
+    tb.addEventListener('click', () => {
+        DeviceOrientationEvent.requestPermission().then(state => {
+            if (state === 'granted') {
+                tb.innerText = '✓ Tilt Enabled'; tb.style.opacity = '0.5'; tb.disabled = true;
+                window.addEventListener('deviceorientation', handleTilt);
+            }
+        }).catch(console.error);
+    });
+} else if (typeof DeviceOrientationEvent !== 'undefined') {
+    window.addEventListener('deviceorientation', handleTilt);
+}
+
+function handleTilt(e) {
+    window.tiltData.x = Math.max(-90, Math.min(90, e.gamma));
+    window.tiltData.y = Math.max(-90, Math.min(90, e.beta));
+}
+</script>
+</body>
+</html>
