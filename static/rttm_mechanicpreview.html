@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dash to the Match</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --wim-green: #00563f;
+            --wim-purple: #4a2c7a;
+            --amex-blue: #006fcf;
+            --gold: #c9a84c;
+            --gold-light: #f0d070;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 0; background: #050505;
+            display: flex; align-items: center; justify-content: center;
+            height: 100vh;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            user-select: none; overflow: hidden;
+        }
+        #game-container {
+            height: 100vh; width: auto; aspect-ratio: 9/16; max-width: 100vw;
+            position: relative; overflow: hidden;
+            box-shadow: 0 0 80px rgba(0,0,0,0.7);
+        }
+        #webgl-canvas {
+            width: 100%; height: 100%; display: block;
+            transition: filter 0.5s ease;
+        }
+        #webgl-canvas.blurred { filter: blur(10px) brightness(0.6) saturate(0.7); }
+
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 10;
+        }
+
+        /* HUD */
+        #status-hud {
+            position: absolute; top: 4%; left: 5%;
+            background: rgba(255,255,255,0.12); backdrop-filter: blur(14px);
+            padding: 1.5% 2.5%; border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        #lives-val { display: flex; gap: clamp(4px,0.8vh,10px); align-items: center; }
+
+        #score-hud {
+            position: absolute; top: 4%; left: 50%; transform: translateX(-50%);
+            text-align: center; color: #fff;
+            display: flex; flex-direction: column; align-items: center;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
+        }
+        #score-label {
+            font-size: clamp(8px,1.1vh,14px); font-weight: 700;
+            text-transform: uppercase; letter-spacing: 3px;
+            color: rgba(255,255,255,0.8); margin-bottom: 2px;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+        #score-val {
+            font-size: clamp(28px,5vh,64px); font-weight: 900; line-height: 1;
+            color: white; text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+        }
+        #score-hud.x2-active #score-val { color: #40e0ff; }
+        #multiplier-text {
+            display: none; font-size: clamp(9px,1.1vh,14px); font-weight: 800;
+            letter-spacing: 2px; color: #40e0ff; margin-top: 2px;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+        #score-hud.x2-active #multiplier-text { display: block; }
+
+
+
+        /* Action indicator (jump/duck) */
+        #action-indicator {
+            position: absolute; bottom: 16%; left: 50%; transform: translateX(-50%);
+            font-size: clamp(10px,1.5vh,16px); font-weight:800; letter-spacing:3px;
+            color: #fff; text-transform: uppercase; opacity:0;
+            transition: opacity 0.15s; text-shadow: 0 0 20px rgba(255,255,255,0.8);
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            pointer-events: none;
+        }
+
+        /* ===== AMEX-STYLE BANNER ===== */
+        #banner-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 50; opacity: 0; pointer-events: none;
+            transition: opacity 0.45s ease;
+            background: rgba(10,5,25,0.45);
+        }
+        #banner-overlay.visible { opacity: 1; pointer-events: auto; }
+
+        #banner-scroll {
+            width: 82%; max-width: 340px;
+            text-align: center;
+            position: relative;
+        }
+
+        /* Amex logo block */
+        .amex-logo-block {
+            background: var(--amex-blue);
+            padding: clamp(14px,3vh,28px) clamp(12px,2.5vw,24px);
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .amex-logo-text {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-weight: 800;
+            font-size: clamp(14px,2.8vh,24px);
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: clamp(3px, 0.7vw, 8px);
+            line-height: 1.3;
+            text-align: center;
+        }
+        .amex-logo-rule {
+            width: 80%; height: 1px; margin: 8px auto;
+            background: rgba(255,255,255,0.35);
+        }
+        .amex-logo-sub {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-weight: 400;
+            font-size: clamp(8px,1.2vh,12px);
+            color: rgba(255,255,255,0.85);
+            text-transform: uppercase;
+            letter-spacing: clamp(2px, 0.5vw, 6px);
+            margin-top: 2px;
+        }
+
+        /* Content card below logo */
+        .banner-card {
+            background: #ffffff;
+            padding: 7% 8% 8%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+        }
+
+        #banner-eyebrow {
+            font-size: clamp(8px,1.1vh,12px); font-weight: 700;
+            color: var(--amex-blue); text-transform: uppercase; letter-spacing: 3px;
+            margin-bottom: 6px;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        #banner-title {
+            font-size: clamp(16px,3.2vh,28px); font-weight: 900;
+            color: #1a1a2e; line-height: 1.15;
+            margin-bottom: 8px; letter-spacing: -0.3px;
+            font-family: 'Georgia', 'Times New Roman', serif;
+        }
+
+        #banner-body {
+            font-size: clamp(9px,1.4vh,13px); color: #555;
+            line-height: 1.55; margin-bottom: 18px;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        #banner-btn {
+            background: var(--amex-blue); color: white; border: none;
+            border-radius: 4px; padding: 10px 30px;
+            font-size: clamp(9px,1.5vh,13px); font-weight: 800;
+            letter-spacing: 2px; cursor: pointer; text-transform: uppercase;
+            transition: transform 0.1s, background 0.2s, box-shadow 0.2s;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            box-shadow: 0 4px 20px rgba(0,111,207,0.3);
+        }
+        #banner-btn:hover  { background: #0058b0; box-shadow: 0 6px 24px rgba(0,111,207,0.45); }
+        #banner-btn:active { transform: scale(0.96); }
+
+        /* ===== GAME OVER / VICTORY ===== */
+        #game-over-screen {
+            position: absolute; inset: 0;
+            background: rgba(74,44,122,0.96);
+            color: white; display: none; flex-direction: column;
+            align-items: center; justify-content: center;
+            pointer-events: auto; z-index: 100; text-align: center; padding: 5%;
+        }
+        #game-over-screen h1 {
+            margin: 0 0 2%; color: #e4e52a;
+            font-size: clamp(24px,4vh,60px); text-transform: uppercase;
+        }
+        .end-btn {
+            margin-top: 5%; padding: 2% 6%;
+            font-size: clamp(12px,1.8vh,24px); font-weight: bold;
+            background: var(--wim-green); color: white;
+            border: 2px solid rgba(255,255,255,0.4); border-radius: 40px;
+            cursor: pointer; font-family: inherit; letter-spacing: 1px;
+        }
+
+        #victory-screen {
+            position: absolute; inset: 0;
+            background: linear-gradient(140deg, #003528 0%, var(--wim-green) 60%, #006845 100%);
+            color: white; display: none; flex-direction: column;
+            align-items: center; justify-content: center;
+            pointer-events: auto; z-index: 100; text-align: center; padding: 5%;
+        }
+        #victory-screen h1 {
+            color: #e4e52a; font-size: clamp(20px,3.5vh,52px);
+            text-transform: uppercase; margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+<div id="game-container">
+    <canvas id="webgl-canvas"></canvas>
+
+    <div id="ui-layer">
+        <div id="status-hud"><div id="lives-val"></div></div>
+
+        <div id="score-hud">
+            <span id="score-label">Score</span>
+            <div id="score-val">0</div>
+            <span id="multiplier-text">× 2</span>
+        </div>
+
+        <div id="action-indicator"></div>
+    </div>
+
+    <!-- AMEX-STYLE BANNER -->
+    <div id="banner-overlay">
+        <div id="banner-scroll">
+            <div class="amex-logo-block">
+                <div class="amex-logo-text" id="amex-level-text">Dash to<br>the Match</div>
+                <div class="amex-logo-rule"></div>
+                <div class="amex-logo-sub" id="amex-level-sub">Wimbledon 2025</div>
+            </div>
+            <div class="banner-card">
+                <div id="banner-eyebrow">American Express presents</div>
+                <div id="banner-title">Dash to the Match</div>
+                <div id="banner-body">Race through the iconic Wimbledon grounds to reach Centre Court — dodge, jump, and sprint your way to glory!</div>
+                <button id="banner-btn">Begin Race</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-over-screen">
+        <h1>Game Over</h1>
+        <p style="font-size:clamp(13px,2.2vh,36px)">Final Score: <span id="final-score" style="font-weight:900;color:#e4e52a">0</span></p>
+        <button class="end-btn" onclick="location.reload()">Play Again</button>
+    </div>
+
+    <div id="victory-screen">
+        <h1>You Made It!</h1>
+        <p style="font-size:clamp(12px,2vh,28px);opacity:0.85;margin-bottom:6px">Centre Court awaits!</p>
+        <p style="font-size:clamp(20px,3.5vh,50px);font-weight:900;color:#e4e52a">
+            Score: <span id="victory-score">0</span>
+        </p>
+        <button class="end-btn" style="background:#c9a84c;color:#1a0b2e;border-color:rgba(255,255,255,0.3)" onclick="location.reload()">Play Again</button>
+    </div>
+</div>
+
+<script>
+if (typeof THREE === 'undefined') { throw new Error('Three.js failed to load.'); }
+
+// ─── THREE SETUP ───────────────────────────────────────────────────────────────
+const canvas   = document.getElementById('webgl-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+renderer.setClearColor(0x8060b0, 1);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene  = new THREE.Scene();
+scene.background = new THREE.Color(0x7a50a0);
+scene.fog = new THREE.FogExp2(0xb078c0, 0.012);
+
+const camera = new THREE.PerspectiveCamera(62, canvas.clientWidth / canvas.clientHeight, 0.1, 200);
+camera.position.set(0, 7.5, 12);
+camera.lookAt(0, 2.5, -5);
+
+const ambientLight = new THREE.AmbientLight(0xffeedd, 0.9); scene.add(ambientLight);
+const dirLight = new THREE.DirectionalLight(0xffd4a0, 0.85);
+dirLight.position.set(-12, 28, 8);
+dirLight.castShadow = true;
+dirLight.shadow.camera.near = 0.5;
+dirLight.shadow.camera.far  = 200;
+dirLight.shadow.camera.left = -30;
+dirLight.shadow.camera.right = 30;
+dirLight.shadow.camera.top = 30;
+dirLight.shadow.camera.bottom = -30;
+scene.add(dirLight);
+
+// Helper – recursively enable castShadow
+function enableShadows(obj) {
+    obj.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+}
+
+// ─── TEXTURES ─────────────────────────────────────────────────────────────────
+function makeHatBandTex() {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 64;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#00175a'; ctx.fillRect(0,0,256,64);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0,8,256,48);
+    ctx.fillStyle = '#00563f'; ctx.fillRect(0,18,256,28);
+    return new THREE.CanvasTexture(c);
+}
+
+function makeTennisTex() {
+    const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#cfdb1c'; ctx.fillRect(0,0,128,128);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.arc(0,64,44,-Math.PI/2,Math.PI/2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(128,64,44,Math.PI/2,3*Math.PI/2); ctx.stroke();
+    return new THREE.CanvasTexture(c);
+}
+
+const hatBandTex  = makeHatBandTex();
+const tennisTex   = makeTennisTex();
+
+// ─── ENVIRONMENT ──────────────────────────────────────────────────────────────
+// Track
+const trackMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(8, 200),
+    new THREE.MeshStandardMaterial({ color: 0x9ba4b5, roughness: 0.85 })
+);
+trackMesh.rotation.x = -Math.PI/2; trackMesh.receiveShadow = true; scene.add(trackMesh);
+
+// Lane lines
+const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+[-1.3, 1.3].forEach(x => {
+    const l = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 200), lineMat);
+    l.rotation.x = -Math.PI/2; l.position.set(x, 0.01, 0); scene.add(l);
+});
+
+// Grass
+const grassMat = new THREE.MeshStandardMaterial({ color: 0x4a8f3f, roughness: 1.0 });
+[[-6.5,5],[6.5,5]].forEach(([x,w]) => {
+    const g = new THREE.Mesh(new THREE.PlaneGeometry(w,200), grassMat);
+    g.rotation.x = -Math.PI/2; g.position.set(x,0.02,0); g.receiveShadow = true; scene.add(g);
+});
+
+// Boundary walls
+const wallMat = new THREE.MeshStandardMaterial({ color: 0x1e5c30, roughness: 0.9 });
+[-9.5, 9.5].forEach(x => {
+    const w = new THREE.Mesh(new THREE.BoxGeometry(1, 3, 200), wallMat);
+    w.position.set(x, 1.5, 0); w.receiveShadow = true; scene.add(w);
+});
+
+// ─── CROWD ────────────────────────────────────────────────────────────────────
+function makeCrowdGeo() {
+    const hGeo = new THREE.CircleGeometry(0.33, 10); hGeo.translate(0,1.42,0);
+    const sh = new THREE.Shape();
+    sh.moveTo(-0.48,0); sh.lineTo(-0.48,0.65);
+    sh.quadraticCurveTo(-0.48,1.08,-0.14,1.12);
+    sh.lineTo(0.14,1.12); sh.quadraticCurveTo(0.48,1.08,0.48,0.65);
+    sh.lineTo(0.48,0);
+    return { hGeo, bGeo: new THREE.ShapeGeometry(sh) };
+}
+const { hGeo: crowdHead, bGeo: crowdBody } = makeCrowdGeo();
+const crowdPalette = [0x4a2c7a,0x5c3882,0x3d2166,0x6b4694,0x003d8f,0x1a6e3a,0xc23060,0x8b1a1a];
+const crowdMats = crowdPalette.map(c => new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide }));
+const standMat2 = new THREE.MeshStandardMaterial({ color: 0x1e4a18, roughness: 0.9 });
+
+for (let tier = 0; tier < 4; tier++) {
+    const th = 1.5, td = 2.5;
+    const yBase = 2.5 + tier * th;
+    const xL = -11.25 - tier * td, xR = 11.25 + tier * td;
+    [[xL, Math.PI/6],[xR,-Math.PI/6]].forEach(([x, ry]) => {
+        const s = new THREE.Mesh(new THREE.BoxGeometry(td,th,200), standMat2);
+        s.position.set(x, yBase-th/2, 0); s.receiveShadow = true; scene.add(s);
+        for (let z = -90; z < 15; z += 1.4) {
+            if (Math.random() > 0.28) {
+                const mat = crowdMats[Math.floor(Math.random()*crowdMats.length)];
+                const p = new THREE.Group();
+                p.add(new THREE.Mesh(crowdBody, mat));
+                p.add(new THREE.Mesh(crowdHead, mat));
+                const sc = 0.75 + Math.random()*0.45;
+                p.scale.set(sc, sc, 1);
+                p.position.set(x + (Math.random()-0.5)*2, yBase, z + Math.random()*0.6);
+                p.rotation.y = ry;
+                scene.add(p);
+            }
+        }
+    });
+}
+
+// ─── WIMBLEDON STADIUM (background progress indicator) ────────────────────────
+function buildStadium() {
+    const g = new THREE.Group();
+    const gMat  = new THREE.MeshStandardMaterial({ color: 0x1a5c36, roughness: 0.75 });
+    const cMat  = new THREE.MeshStandardMaterial({ color: 0xe0d4b0, roughness: 0.65 });
+    const rMat  = new THREE.MeshStandardMaterial({ color: 0x7a8a98, roughness: 0.55, metalness: 0.25 });
+    const dMat  = new THREE.MeshStandardMaterial({ color: 0x0d3322, roughness: 0.9 });
+    const wMat  = new THREE.MeshStandardMaterial({ color: 0xf0ebe0, roughness: 0.6 });
+
+    // ── Outer bowl ──
+    const bowl = new THREE.Mesh(new THREE.CylinderGeometry(28,30,26,40,1,true), gMat);
+    bowl.position.y = 13; g.add(bowl);
+
+    // Horizontal tier bands (white/cream)
+    [3, 10, 18].forEach(y => {
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(30.5,30.5,1.0,40,1,true), cMat);
+        band.position.y = y; g.add(band);
+    });
+
+    // ── Arched columns ──
+    for (let i = 0; i < 36; i++) {
+        const a = (i/36)*Math.PI*2;
+        const col = new THREE.Mesh(new THREE.BoxGeometry(0.9,24,0.9), cMat);
+        col.position.set(Math.cos(a)*29.5, 12, Math.sin(a)*29.5);
+        col.rotation.y = a; g.add(col);
+
+        // Arch spans between columns (simplified as box)
+        const arch = new THREE.Mesh(new THREE.BoxGeometry(2.8,1.2,0.5), cMat);
+        const aa = a + (1/36)*Math.PI*2*0.5;
+        arch.position.set(Math.cos(aa)*29.2, 23, Math.sin(aa)*29.2);
+        arch.rotation.y = aa; g.add(arch);
+    }
+
+    // ── Inner seating bowl (visible from above) ──
+    for (let t = 0; t < 4; t++) {
+        const r = 26 - t*4, ri = 22 - t*4;
+        const tier = new THREE.Mesh(new THREE.CylinderGeometry(ri, r, 1.5, 40), gMat);
+        tier.position.y = t*4 + 1; g.add(tier);
+    }
+
+    // ── Roof structure ──
+    // Outer ring
+    const roofRing = new THREE.Mesh(new THREE.CylinderGeometry(31,29,2.5,48), rMat);
+    roofRing.position.y = 26; g.add(roofRing);
+
+    // Retractable panel lattice (flat annular disc)
+    const roofPanel = new THREE.Mesh(new THREE.CylinderGeometry(18,29,1,48), rMat);
+    roofPanel.position.y = 25.2; g.add(roofPanel);
+
+    // Centre opening (dark hole visible)
+    const hole = new THREE.Mesh(new THREE.CylinderGeometry(17,17,1.2,36), dMat);
+    hole.position.y = 24.8; g.add(hole);
+
+    // ── Roof trusses ──
+    for (let i = 0; i < 20; i++) {
+        const a = (i/20)*Math.PI*2;
+        const truss = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.4, 12), wMat);
+        truss.position.set(Math.cos(a)*23.5, 25.5, Math.sin(a)*23.5);
+        truss.rotation.y = a; g.add(truss);
+    }
+
+    // ── Scoreboard ──
+    const sbFrame = new THREE.Mesh(new THREE.BoxGeometry(12,5,0.6), dMat);
+    sbFrame.position.set(0, 8, 29.8); g.add(sbFrame);
+    const sbScreen = new THREE.Mesh(
+        new THREE.BoxGeometry(10.5,4.2,0.1),
+        new THREE.MeshStandardMaterial({ color: 0x004422, roughness: 0.4 })
+    );
+    sbScreen.position.set(0, 8, 30.1); g.add(sbScreen);
+
+    return g;
+}
+
+const stadiumGroup = buildStadium();
+stadiumGroup.position.set(0, -5, -115);
+stadiumGroup.scale.setScalar(0.04);
+scene.add(stadiumGroup);
+
+// ─── LANES ────────────────────────────────────────────────────────────────────
+const lanePositions = [-2.6, 0, 2.6];
+let currentLaneIndex = 1;
+
+// ─── PLAYER CHARACTER (Illustrated chibi style) ───────────────────────────────
+const playerGroup = new THREE.Group();
+scene.add(playerGroup);
+
+const mSkin  = new THREE.MeshStandardMaterial({ color: 0xfcd5b0, roughness: 0.65 });
+const mTunic = new THREE.MeshStandardMaterial({ color: 0x5a9dbf, roughness: 0.55 });
+const mBelt  = new THREE.MeshStandardMaterial({ color: 0x2e1508, roughness: 0.85 });
+const mPants = new THREE.MeshStandardMaterial({ color: 0x7a6552, roughness: 0.8 });
+const mShoe  = new THREE.MeshStandardMaterial({ color: 0x181008, roughness: 0.7 });
+const mHatS  = new THREE.MeshStandardMaterial({ color: 0xf2e27a, roughness: 0.55 });
+const mHatB  = new THREE.MeshStandardMaterial({ map: hatBandTex, roughness: 0.7 });
+
+function makePlayerLimb(rT, rB, len, x, y, mat) {
+    const g = new THREE.CylinderGeometry(rT, rB, len, 10);
+    g.translate(0, -len/2, 0); // pivot from top
+    const m = new THREE.Mesh(g, mat);
+    m.position.set(x, y, 0); m.castShadow = true; return m;
+}
+
+// Round head
+const pHead = new THREE.Mesh(new THREE.SphereGeometry(0.50, 20, 16), mSkin);
+pHead.position.y = 3.88; pHead.castShadow = true; playerGroup.add(pHead);
+
+// Brown hair (cap on top/back of head)
+const mHair = new THREE.MeshStandardMaterial({ color: 0x5c3a1e, roughness: 0.85 });
+const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.52, 20, 12, 0, Math.PI*2, 0, Math.PI*0.55), mHair);
+hairTop.position.y = 3.92; playerGroup.add(hairTop);
+// Side hair tufts
+[-0.42, 0.42].forEach(x => {
+    const tuft = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), mHair);
+    tuft.position.set(x, 3.78, -0.12); playerGroup.add(tuft);
+});
+// Back hair
+const hairBack = new THREE.Mesh(new THREE.SphereGeometry(0.38, 10, 8), mHair);
+hairBack.position.set(0, 3.72, -0.28); playerGroup.add(hairBack);
+
+// Ear nubs
+[-0.47, 0.47].forEach(x => {
+    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), mSkin);
+    ear.position.set(x, 3.82, 0.05); playerGroup.add(ear);
+});
+
+// Neck
+const pNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.30, 10), mSkin);
+pNeck.position.y = 3.22; playerGroup.add(pNeck);
+
+// Torso (light blue tunic)
+const pTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.38, 1.30, 12), mTunic);
+pTorso.position.y = 2.42; pTorso.castShadow = true; playerGroup.add(pTorso);
+
+// Shoulder caps (flattened, not round)
+[-0.46, 0.46].forEach(x => {
+    const sh = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.20, 0.14, 10), mTunic);
+    sh.rotation.z = x > 0 ? -0.3 : 0.3;
+    sh.position.set(x, 3.00, 0); playerGroup.add(sh);
+});
+
+// Belt (flat band around waist, properly sized to torso)
+const pBelt = new THREE.Mesh(new THREE.CylinderGeometry(0.39, 0.39, 0.12, 12), mBelt);
+pBelt.position.y = 1.78; playerGroup.add(pBelt);
+// Belt buckle
+const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.10, 0.06), new THREE.MeshStandardMaterial({ color: 0xc8a020, roughness: 0.4, metalness: 0.6 }));
+buckle.position.set(0, 1.78, 0.40); playerGroup.add(buckle);
+
+// Arms (animated – pivot from shoulder)
+const armL = makePlayerLimb(0.14, 0.11, 1.05, -0.48, 2.98, mTunic);
+const armR = makePlayerLimb(0.14, 0.11, 1.05,  0.48, 2.98, mTunic);
+playerGroup.add(armL, armR);
+
+// Hands (attached to arms so they move with them)
+const handL = new THREE.Mesh(new THREE.SphereGeometry(0.10, 8, 8), mSkin);
+handL.position.set(0, -1.05, 0); handL.castShadow = true;
+armL.add(handL);
+
+const handR = new THREE.Mesh(new THREE.SphereGeometry(0.10, 8, 8), mSkin);
+handR.position.set(0, -1.05, 0); handR.castShadow = true;
+armR.add(handR);
+
+// Legs (animated – pivot from hip, positioned flush with torso bottom)
+const legL = makePlayerLimb(0.19, 0.14, 1.30, -0.20, 1.78, mPants);
+const legR = makePlayerLimb(0.19, 0.14, 1.30,  0.20, 1.78, mPants);
+playerGroup.add(legL, legR);
+
+// Shoes (attached to legs so they move with them)
+const shoeL = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.16, 0.40), mShoe);
+shoeL.position.set(0, -1.30, 0.06); shoeL.castShadow = true;
+legL.add(shoeL);
+
+const shoeR = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.16, 0.40), mShoe);
+shoeR.position.set(0, -1.30, 0.06); shoeR.castShadow = true;
+legR.add(shoeR);
+
+// ── PANAMA HAT (sized to fit head) ──
+const equippedHatGroup = new THREE.Group();
+
+// Wide brim
+const brimGeo = new THREE.CylinderGeometry(0.72, 0.78, 0.05, 36);
+const hatBrim = new THREE.Mesh(brimGeo, mHatS);
+hatBrim.castShadow = true; equippedHatGroup.add(hatBrim);
+
+// Crown (tapered)
+const crownGeo = new THREE.CylinderGeometry(0.32, 0.42, 0.55, 32);
+const hatCrown = new THREE.Mesh(crownGeo, mHatS);
+hatCrown.position.y = 0.30; hatCrown.castShadow = true; equippedHatGroup.add(hatCrown);
+
+// Wimbledon stripe band
+const hatBandMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.425, 0.425, 0.14, 32), mHatB);
+hatBandMesh.position.y = 0.08; equippedHatGroup.add(hatBandMesh);
+
+equippedHatGroup.position.y = 4.18;
+playerGroup.add(equippedHatGroup);
+
+let hasHat = true;
+
+// ─── GAME STATE ───────────────────────────────────────────────────────────────
+let score = 0, lives = 2;
+let multiplierActive = false, multiplierTimer = 0;
+let gameActive = false;
+let gameSpeed = 0.18;
+
+// Jump
+let isJumping = false, jumpVel = 0, jumpOffset = 0;
+const JUMP_FORCE = 0.32, GRAV = -0.016;
+
+// Duck
+let isDucking = false;
+
+// Stage config (total ~105s of play)
+const STAGES = [
+    { id:1, name:'Race via Queue',       short:'Queue',    speed:0.18, duration:30, spawnRate:0.018 },
+    { id:2, name:'Race via Pavilion',    short:'Pavilion', speed:0.30, duration:28, spawnRate:0.023 },
+    { id:3, name:'Race via CM Lounge',   short:'CM Lounge',speed:0.42, duration:26, spawnRate:0.028 },
+    { id:4, name:'Race to Centre Court', short:'Centre Ct',speed:0.58, duration:22, spawnRate:0.035 },
+];
+let currentStage = 0, stageTimer = 0, transitioning = false;
+
+const activeItems = [];
+const clock = new THREE.Clock();
+
+// ─── COLLECTIBLE ITEMS (spawned) ──────────────────────────────────────────────
+// Spawnable hat
+const spawnHatProto = (() => {
+    const g = new THREE.Group();
+    const mat1 = new THREE.MeshStandardMaterial({ color: 0xf2e27a, emissive: 0xd0b800, emissiveIntensity: 0.5 });
+    g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.8,0.84,0.06,32), mat1));
+    const cr = new THREE.Mesh(new THREE.CylinderGeometry(0.38,0.48,0.6,32), mat1);
+    cr.position.y = 0.33; g.add(cr);
+    const bd = new THREE.Mesh(new THREE.CylinderGeometry(0.485,0.485,0.15,32),
+        new THREE.MeshStandardMaterial({ map: hatBandTex, emissive: 0xffffff, emissiveIntensity: 0.18 }));
+    bd.position.y = 0.10; g.add(bd);
+    const pl = new THREE.PointLight(0xf0d000, 1.2, 5); pl.position.y = -0.5; g.add(pl);
+    return g;
+})();
+
+// Towel (multiplier)
+const towelMat = new THREE.MeshStandardMaterial({ color: 0x03a9f4, emissive: 0x03a9f4, emissiveIntensity: 0.75 });
+
+// ─── OBSTACLE BUILDERS ────────────────────────────────────────────────────────
+
+function buildCaddy() {
+    const g = new THREE.Group();
+    const fMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.55, metalness: 0.4 });
+    const bMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.6, metalness: 0.3 });
+    const wMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.7 });
+
+    // Basket sides
+    const fGeo = new THREE.BoxGeometry(0.92, 0.72, 0.06);
+    [0.44,-0.44].forEach(z => {
+        const s = new THREE.Mesh(fGeo, bMat); s.position.set(0,0.4,z); g.add(s);
+    });
+    const sGeo = new THREE.BoxGeometry(0.06, 0.72, 0.92);
+    [-0.44,0.44].forEach(x => {
+        const s = new THREE.Mesh(sGeo, bMat); s.position.set(x,0.4,0); g.add(s);
+    });
+    // Bottom
+    g.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.92,0.06,0.92),bMat),{position:{x:0,y:0.05,z:0}}));
+    const bot = new THREE.Mesh(new THREE.BoxGeometry(0.92,0.06,0.92),bMat);
+    bot.position.y = 0.05; g.add(bot);
+
+    // Tennis balls inside
+    const bBallMat = new THREE.MeshStandardMaterial({ map: tennisTex, roughness: 0.55 });
+    [[-0.22,0.2,-0.22],[0.22,0.2,0.22],[-0.22,0.2,0.22],[0.22,0.2,-0.22],[0,0.35,0]].forEach(([bx,by,bz]) => {
+        const b = new THREE.Mesh(new THREE.SphereGeometry(0.17,10,10), bBallMat);
+        b.position.set(bx,by,bz); g.add(b);
+    });
+
+    // Legs
+    const lGeo = new THREE.CylinderGeometry(0.04,0.04,0.38,6);
+    [[-0.34,0.34],[-0.34,-0.34],[0.34,0.34],[0.34,-0.34]].forEach(([lx,lz]) => {
+        const l = new THREE.Mesh(lGeo, fMat); l.position.set(lx,-0.14,lz); g.add(l);
+    });
+
+    // Wheels
+    const wGeo = new THREE.CylinderGeometry(0.18,0.18,0.07,14);
+    [[-0.5,0.28,-0.5,-0.28],[0.5,0.28,0.5,-0.28]].forEach(([...unused]) => {}); // skip forEach for brevity
+    [[-0.52,0.26],[-0.52,-0.26],[0.52,0.26],[0.52,-0.26]].forEach(([wx,wz]) => {
+        const w = new THREE.Mesh(wGeo, wMat); w.rotation.z = Math.PI/2;
+        w.position.set(wx,-0.3,wz); g.add(w);
+    });
+
+    g.position.y = 0.45;
+    enableShadows(g);
+    return g;
+}
+
+function buildBird() {
+    const g = new THREE.Group();
+    const dMat = new THREE.MeshStandardMaterial({ color: 0x1a1520, roughness: 0.65 });
+    const bkMat = new THREE.MeshStandardMaterial({ color: 0xee9922, roughness: 0.5 });
+
+    // Body (elongated sphere)
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), dMat);
+    body.scale.set(1.65, 0.88, 1.05); g.add(body);
+
+    // Head
+    const bHead = new THREE.Mesh(new THREE.SphereGeometry(0.19,10,8), dMat);
+    bHead.position.set(0, 0.16, 0.28); g.add(bHead);
+
+    // Beak
+    const bk = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.22, 6), bkMat);
+    bk.rotation.x = Math.PI/2; bk.position.set(0, 0.16, 0.50); g.add(bk);
+
+    // Wings (animated)
+    const wGeo = new THREE.BoxGeometry(0.95, 0.05, 0.42);
+    const wingL = new THREE.Mesh(wGeo, dMat); wingL.position.set(-0.58, 0.02, 0);
+    const wingR = new THREE.Mesh(wGeo, dMat); wingR.position.set( 0.58, 0.02, 0);
+    g.add(wingL, wingR);
+    g.userData.wingL = wingL;
+    g.userData.wingR = wingR;
+
+    // Tail feathers
+    const tail = new THREE.Mesh(new THREE.BoxGeometry(0.18,0.04,0.30), dMat);
+    tail.position.set(0, 0, -0.40); g.add(tail);
+
+    g.rotation.y = Math.PI; // face toward player
+    g.position.y = 3.1;
+    enableShadows(g);
+    return g;
+}
+
+function buildFence() {
+    const g = new THREE.Group();
+    const wMat = new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.5 });
+
+    // Horizontal rails
+    [0.9, 0.42].forEach(y => {
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(8.8,0.07,0.07), wMat);
+        rail.position.y = y; g.add(rail);
+    });
+
+    // Post supports at ends
+    [-4.3, 4.3].forEach(x => {
+        const post = new THREE.Mesh(new THREE.BoxGeometry(0.1,1.12,0.1), wMat);
+        post.position.set(x, 0.56, 0); g.add(post);
+    });
+
+    // Pickets
+    for (let x = -4.15; x <= 4.15; x += 0.40) {
+        const picket = new THREE.Mesh(new THREE.BoxGeometry(0.07, 1.08, 0.07), wMat);
+        // Pointed top
+        const tip = new THREE.Mesh(new THREE.ConeGeometry(0.065, 0.2, 4), wMat);
+        tip.position.y = 0.54 + 0.1; tip.rotation.y = Math.PI/4; picket.add(tip);
+        picket.position.set(x, 0.54, 0); g.add(picket);
+    }
+
+    enableShadows(g);
+    return g;
+}
+
+// ─── UI ELEMENTS ──────────────────────────────────────────────────────────────
+const scoreValEl    = document.getElementById('score-val');
+const livesValEl    = document.getElementById('lives-val');
+const scoreHudEl    = document.getElementById('score-hud');
+const actionInd     = document.getElementById('action-indicator');
+
+function updateUI() {
+    let html = '';
+    for (let i = 0; i < 2; i++) {
+        html += `<svg viewBox="0 0 24 24" style="width:clamp(15px,2.3vh,30px);height:clamp(15px,2.3vh,30px);opacity:${i<lives?1:0.2};transition:opacity .3s"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ff2a2a"/></svg>`;
+    }
+    livesValEl.innerHTML = html;
+    scoreHudEl.classList.toggle('x2-active', multiplierActive);
+}
+updateUI();
+
+function showAction(txt) {
+    actionInd.textContent = txt;
+    actionInd.style.opacity = '1';
+    clearTimeout(actionInd._t);
+    actionInd._t = setTimeout(() => actionInd.style.opacity = '0', 600);
+}
+
+// ─── BANNER SYSTEM ────────────────────────────────────────────────────────────
+const bannerOverlay = document.getElementById('banner-overlay');
+const bannerEyebrow = document.getElementById('banner-eyebrow');
+const bannerTitle   = document.getElementById('banner-title');
+const bannerBody    = document.getElementById('banner-body');
+const bannerBtn     = document.getElementById('banner-btn');
+const amexLevelText = document.getElementById('amex-level-text');
+const amexLevelSub  = document.getElementById('amex-level-sub');
+
+function showBanner(opts, onDismiss) {
+    // Update the Amex logo block with the level name
+    amexLevelText.innerHTML = opts.levelText || 'Dash to<br>the Match';
+    amexLevelSub.textContent = opts.levelSub || 'Wimbledon 2025';
+    bannerEyebrow.textContent = opts.eyebrow || 'American Express presents';
+    bannerTitle.textContent   = opts.title;
+    bannerBody.textContent    = opts.body || '';
+    bannerBtn.textContent     = opts.btn || 'Continue';
+    canvas.classList.add('blurred');
+    bannerOverlay.classList.add('visible');
+    const dismiss = () => {
+        canvas.classList.remove('blurred');
+        bannerOverlay.classList.remove('visible');
+        if (onDismiss) onDismiss();
+    };
+    bannerBtn.onclick = dismiss;
+    bannerOverlay.onclick = (e) => { if (e.target === bannerOverlay) dismiss(); };
+}
+
+function startStage() {
+    gameSpeed    = STAGES[currentStage].speed;
+    stageTimer   = 0;
+    transitioning = false;
+    gameActive   = true;
+    updateUI();
+}
+
+function advanceStage() {
+    transitioning = true;
+    gameActive    = false;
+    currentStage++;
+
+    if (currentStage >= STAGES.length) {
+        // Victory!
+        document.getElementById('victory-score').textContent = score;
+        document.getElementById('victory-screen').style.display = 'flex';
+        return;
+    }
+
+    const next = STAGES[currentStage];
+    setTimeout(() => {
+        showBanner({
+            levelText: `Stage<br>${next.short}`,
+            levelSub: `Stage ${next.id} of 4`,
+            eyebrow: `Stage ${next.id} of 4`,
+            title:   next.name,
+            body:    stageDescriptions[currentStage],
+            btn:     'Race On'
+        }, startStage);
+    }, 400);
+}
+
+const stageDescriptions = [
+    '',
+    'The path winds through the famous grass courts. Keep your eyes peeled — birds are diving!',
+    'You\'re passing the exclusive Members Lounge. Fences and birds ahead — jump and duck!',
+    'The roar of Centre Court is deafening. Give everything you\'ve got!'
+];
+
+// Show start banner
+showBanner({
+    levelText: 'Dash to<br>the Match',
+    levelSub: 'Wimbledon 2025',
+    eyebrow: 'American Express presents',
+    title:   'Dash to the Match',
+    body:    'Race through the iconic Wimbledon grounds! Use ← → to move lanes, ↑ to JUMP, ↓ to DUCK.',
+    btn:     'Begin Race'
+}, startStage);
+
+// ─── INPUT ────────────────────────────────────────────────────────────────────
+window.addEventListener('keydown', e => {
+    if (!gameActive) return;
+    if (e.code === 'ArrowLeft'  && currentLaneIndex > 0) { currentLaneIndex--; e.preventDefault(); }
+    if (e.code === 'ArrowRight' && currentLaneIndex < 2) { currentLaneIndex++; e.preventDefault(); }
+    if (e.code === 'ArrowUp'    && !isJumping && !isDucking) {
+        isJumping = true; jumpVel = JUMP_FORCE; showAction('JUMP!'); e.preventDefault();
+    }
+    if (e.code === 'ArrowDown'  && !isJumping) {
+        isDucking = true; showAction('DUCK!'); e.preventDefault();
+    }
+});
+window.addEventListener('keyup', e => {
+    if (e.code === 'ArrowDown') isDucking = false;
+});
+
+// Touch controls
+let tx0 = 0, ty0 = 0, tt0 = 0, duckTimeout = null;
+canvas.addEventListener('touchstart', e => {
+    tx0 = e.touches[0].clientX; ty0 = e.touches[0].clientY; tt0 = Date.now();
+}, { passive: true });
+canvas.addEventListener('touchend', e => {
+    if (!gameActive) return;
+    const dx = e.changedTouches[0].clientX - tx0;
+    const dy = e.changedTouches[0].clientY - ty0;
+    const dt = Date.now() - tt0;
+    if (dt > 600) return;
+    if (Math.abs(dx) > Math.abs(dy)) {
+        if (dx < -25 && currentLaneIndex > 0) currentLaneIndex--;
+        if (dx >  25 && currentLaneIndex < 2) currentLaneIndex++;
+    } else {
+        if (dy < -25 && !isJumping && !isDucking) { isJumping = true; jumpVel = JUMP_FORCE; showAction('JUMP!'); }
+        if (dy >  25 && !isJumping) {
+            isDucking = true; showAction('DUCK!');
+            clearTimeout(duckTimeout);
+            duckTimeout = setTimeout(() => { isDucking = false; }, 550);
+        }
+    }
+}, { passive: true });
+
+// ─── SPAWN LOGIC ──────────────────────────────────────────────────────────────
+function spawnItem() {
+    const rand = Math.random();
+    const laneIdx = Math.floor(Math.random() * 3);
+    let mesh, type;
+
+    // Stage-gated spawn probabilities
+    const fenceChance = currentStage >= 2 ? 0.06 + (currentStage-2)*0.05 : 0;
+    const birdChance  = currentStage >= 1 ? 0.10 + currentStage*0.05 : 0;
+    const caddyChance = 0.16 + currentStage*0.05;
+
+    if (rand > 0.97 && !hasHat) {
+        mesh = spawnHatProto.clone();
+        mesh.scale.set(1.15,1.15,1.15); mesh.position.y = 1.0;
+        type = 'hat';
+    } else if (rand > 0.93 && !multiplierActive) {
+        mesh = new THREE.Mesh(new THREE.BoxGeometry(0.8,1.2,0.2), towelMat);
+        mesh.position.y = 1.0;
+        const tgl = new THREE.PointLight(0x03a9f4, 1.5, 5); tgl.position.y = -0.5; mesh.add(tgl);
+        type = 'towel';
+    } else if (rand < fenceChance) {
+        mesh = buildFence();
+        type = 'fence';
+    } else if (rand < fenceChance + birdChance) {
+        mesh = buildBird();
+        mesh.userData.animPhase = Math.random() * Math.PI * 2;
+        mesh.position.y = 2.8 + Math.random() * 0.55;
+        type = 'bird';
+    } else if (rand < fenceChance + birdChance + caddyChance) {
+        mesh = buildCaddy();
+        type = 'caddy';
+    } else {
+        mesh = new THREE.Mesh(
+            new THREE.SphereGeometry(0.50, 14, 14),
+            new THREE.MeshStandardMaterial({ map: tennisTex, roughness: 0.55 })
+        );
+        mesh.rotation.y = Math.random() * Math.PI;
+        mesh.position.y = 0.5;
+        type = 'ball';
+    }
+
+    mesh.castShadow = true;
+    mesh.position.z = -90;
+    mesh.position.x = (type === 'fence') ? 0 : lanePositions[laneIdx];
+    scene.add(mesh);
+    activeItems.push({ mesh, type, lane: laneIdx, active: true });
+}
+
+// ─── HIT FLASH ────────────────────────────────────────────────────────────────
+function flashHit(fatal) {
+    mTunic.emissive.setHex(fatal ? 0xff1010 : 0xffffff);
+    setTimeout(() => mTunic.emissive.setHex(0x000000), fatal ? 280 : 130);
+}
+
+// ─── ANIMATION LOOP ───────────────────────────────────────────────────────────
+function animate() {
+    requestAnimationFrame(animate);
+
+    if (!gameActive) {
+        renderer.render(scene, camera);
+        return;
+    }
+
+    const delta = clock.getDelta();
+    const time  = clock.getElapsedTime();
+    const runSpeed = 12;
+
+    // ── Stage timer ──
+    if (!transitioning) {
+        stageTimer += delta;
+        if (stageTimer >= STAGES[currentStage].duration) advanceStage();
+    }
+
+    if (multiplierActive) { multiplierTimer -= delta; if (multiplierTimer <= 0) multiplierActive = false; }
+    updateUI();
+
+    // ── Player lane movement ──
+    const tX   = lanePositions[currentLaneIndex];
+    const diffX = tX - playerGroup.position.x;
+    playerGroup.position.x   += diffX * 0.22;
+    playerGroup.rotation.z    = -diffX * 0.10;
+
+    // ── Jump physics ──
+    if (isJumping) {
+        jumpVel += GRAV;
+        jumpOffset += jumpVel;
+        if (jumpOffset <= 0) { jumpOffset = 0; jumpVel = 0; isJumping = false; }
+    }
+
+    // ── Duck squash (smooth) ──
+    const targetScaleY = isDucking ? 0.65 : 1.0;
+    playerGroup.scale.y += (targetScaleY - playerGroup.scale.y) * 0.18;
+
+    // ── Y position (bob + jump) ──
+    const bob = (isJumping || isDucking) ? 0 : Math.abs(Math.sin(time * runSpeed * 2)) * 0.11;
+    playerGroup.position.y = jumpOffset + bob;
+
+    // ── Arm / leg animation ──
+    if (isDucking) {
+        armL.rotation.x = 0; armL.rotation.z =  0.95;
+        armR.rotation.x = 0; armR.rotation.z = -0.95;
+        legL.rotation.x = 0.6; legR.rotation.x = 0.6;
+    } else if (isJumping) {
+        armL.rotation.x = -1.15; armL.rotation.z = -0.35;
+        armR.rotation.x = -1.15; armR.rotation.z =  0.35;
+        legL.rotation.x = 0.40; legR.rotation.x = 0.40;
+    } else {
+        armL.rotation.x = Math.sin(time * runSpeed) * 1.55; armL.rotation.z = 0;
+        armR.rotation.x = -Math.sin(time * runSpeed) * 1.55; armR.rotation.z = 0;
+        legL.rotation.x = -Math.sin(time * runSpeed) * 1.25;
+        legR.rotation.x =  Math.sin(time * runSpeed) * 1.25;
+    }
+
+    // ── Stadium scale (progress indicator – stays in background) ──
+    const stageProg = Math.min(stageTimer / STAGES[currentStage].duration, 1);
+    const overallProg = (currentStage + stageProg) / STAGES.length;
+    const tScale = 0.04 + overallProg * 0.28;  // max ~0.32 instead of 1.0
+    const tZ     = -115 + overallProg * 30;     // max ~-85 instead of -43
+    stadiumGroup.scale.x += (tScale - stadiumGroup.scale.x) * 0.007;
+    stadiumGroup.scale.y = stadiumGroup.scale.x;
+    stadiumGroup.scale.z = stadiumGroup.scale.x;
+    stadiumGroup.position.z += (tZ - stadiumGroup.position.z) * 0.007;
+
+    // ── Spawn ──
+    if (Math.random() < STAGES[currentStage].spawnRate) spawnItem();
+
+    // ── Item updates & collision ──
+    for (let i = activeItems.length - 1; i >= 0; i--) {
+        const item = activeItems[i];
+        if (!item.active) continue;
+
+        const spd = (item.type === 'bird') ? gameSpeed * 1.15 : gameSpeed;
+        item.mesh.position.z += spd;
+
+        // Animate birds
+        if (item.type === 'bird') {
+            const ph = time * 9 + item.mesh.userData.animPhase;
+            if (item.mesh.userData.wingL) {
+                item.mesh.userData.wingL.rotation.z = Math.sin(ph) * 0.65;
+                item.mesh.userData.wingR.rotation.z = -Math.sin(ph) * 0.65;
+            }
+            item.mesh.position.y = item.mesh.position.y + Math.sin(time * 3 + item.mesh.userData.animPhase) * 0.003;
+        }
+        if (item.type === 'hat' || item.type === 'towel') item.mesh.rotation.y += 0.045;
+        if (item.type === 'ball') item.mesh.rotation.x += 0.09;
+
+        // Remove if passed
+        if (item.mesh.position.z > 12) {
+            scene.remove(item.mesh);
+            activeItems.splice(i, 1);
+            continue;
+        }
+
+        // Zone check
+        const closeZ = Math.abs(item.mesh.position.z - playerGroup.position.z) < 1.05;
+        if (!closeZ) continue;
+
+        const sameLane = (item.type === 'fence')
+            ? true
+            : Math.abs(playerGroup.position.x - item.mesh.position.x) < 1.0;
+        if (!sameLane) continue;
+
+        // Collect items
+        if (item.type === 'ball') {
+            scene.remove(item.mesh); activeItems.splice(i, 1);
+            score += multiplierActive ? 100 : 50;
+            scoreValEl.textContent = score;
+            continue;
+        }
+        if (item.type === 'hat') {
+            scene.remove(item.mesh); activeItems.splice(i, 1);
+            hasHat = true; equippedHatGroup.scale.set(1,1,1);
+            score += 150; scoreValEl.textContent = score;
+            continue;
+        }
+        if (item.type === 'towel') {
+            scene.remove(item.mesh); activeItems.splice(i, 1);
+            multiplierActive = true; multiplierTimer = 10;
+            score += 100; scoreValEl.textContent = score;
+            continue;
+        }
+
+        // Obstacle collision
+        let hit = false;
+
+        if (item.type === 'caddy') {
+            // Jump to clear (caddy height ~1.4)
+            hit = jumpOffset < 1.3;
+        }
+        if (item.type === 'bird') {
+            // Duck to dodge: bird body center at item.mesh.position.y (~3.0-3.5)
+            // Player head world Y = playerGroup.position.y + 3.88 * playerGroup.scale.y
+            const headY = playerGroup.position.y + 3.88 * playerGroup.scale.y;
+            hit = headY > item.mesh.position.y - 0.35;
+        }
+        if (item.type === 'fence') {
+            // Jump to clear (fence top ~1.1)
+            hit = jumpOffset < 1.0;
+        }
+
+        if (hit) {
+            scene.remove(item.mesh); activeItems.splice(i, 1);
+            if (hasHat) {
+                hasHat = false;
+                equippedHatGroup.scale.set(0,0,0);
+                flashHit(false);
+            } else {
+                lives--;
+                flashHit(true);
+                updateUI();
+                if (lives <= 0) {
+                    gameActive = false;
+                    document.getElementById('final-score').textContent = score;
+                    document.getElementById('game-over-screen').style.display = 'flex';
+                }
+            }
+        }
+    }
+
+    // ── Resize ──
+    if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+        renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+        camera.aspect = canvas.clientWidth / canvas.clientHeight;
+        camera.updateProjectionMatrix();
+    }
+
+    renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
